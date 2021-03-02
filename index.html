@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GesCapJS</title>
+    <script src="./GesCap.js"></script>
+</head>
+<body>
+    <script>
+        let GC = new GestureCapture();
+        GC.setFunction(document.body, () => {
+            console.log("a");
+        });
+    </script>
+</body>
+</html>

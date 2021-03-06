@@ -1,3 +1,3 @@
 # GesCapJS
 "GestureCapture"<br>
-Website -> https://yuhima.net/\_dev/GesCap/
+Website -> https://yuhima.net/_dev/GesCap/

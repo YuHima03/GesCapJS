@@ -48,7 +48,6 @@ class GestureCapture{
 
         switch(event.type){
             case("mousedown"):
-
                 break;
             case("touchstart"):
                 break;

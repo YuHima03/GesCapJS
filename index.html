@@ -8,10 +8,28 @@
     <script src="./GesCap.js"></script>
     <script src="../Calender4Students/js/main.js"></script>
     <style>
+        html {
+            height: 500px;
+            background: rgb(131, 226, 243);
+        }
+
+        body {
+            height: 400px;
+            background: rgb(98, 98, 224);
+        }
+
+        main {
+            background: rgb(77, 230, 166);
+        }
+
         #gescapbox {
-            width: 300px;
+            width: 50vw;
             height: 300px;
             background: gainsboro;
+        }
+
+        *{
+            touch-action: manipulation;
         }
     </style>
 </head>
@@ -22,7 +40,14 @@
     </main>
     <script>
         GestureCapture.addFunction(document.getElementById("gescapbox"), (event) => {
-            document.getElementById("gescapbox").textContent = event.target.tagName;
+            //console.log(event);
+            let text = "";
+
+            [...event.touches].forEach(element => {
+                text += (element.target.tagName + "<br>");
+            });
+
+            document.getElementById("gescapbox").innerHTML = text;
         });
     </script>
 </body>

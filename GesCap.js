@@ -86,8 +86,9 @@ class GestureCapture{
      * execute ```callback``` when event occured on ```targetElement```
      * @param {HTMLElement|Any[HTMLElement]} targetElement it also can be the return values of ```getElement(s)By~``` / ```querySelector(All)```
      * @param {Function} callback
+     * @param {Boolean} targetAllChildren
      */
-    static addFunction(targetElement, callback = () => undefined){
+    static addFunction(targetElement, callback = () => undefined, targetAllChildren = true){
         //targetElementがHTMLElementの時
         if(targetElement instanceof HTMLElement){
             targetElement = [targetElement];
@@ -105,6 +106,14 @@ class GestureCapture{
         targetElement.forEach(elem => {
             //ID登録
             elem.dataset["gescapId"] = ID;
+
+            //全ての子要素も対象にする場合
+            if(targetAllChildren){
+                getAllChildren(elem).forEach(v => {
+                    v.dataset["gescapId"] = ID;
+                });
+            }
+
             //コールバックと紐づけ
             GestureCapture.#callbackList[ID] = callback;
         });

@@ -2,15 +2,27 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GesCapJS</title>
-    <script src="./GesCap.js"></script>
+    <title>Gestures.js</title>
+    <script src="./Gestures.js"></script>
+    <script src="../Calender4Students/js/main.js"></script>
+    <style>
+        #gescapbox {
+            width: 300px;
+            height: 300px;
+            background: gainsboro;
+        }
+    </style>
 </head>
 <body>
+    <main>
+        <div id="gescapbox">
+        </div>
+    </main>
     <script>
-        let GC = new GestureCapture();
-        GC.setFunction(document.body, () => {
-            console.log("a");
+        GestureCapture.addFunction(document.getElementById("gescapbox"), (event) => {
+            document.getElementById("gescapbox").textContent = event.target.tagName;
         });
     </script>
 </body>

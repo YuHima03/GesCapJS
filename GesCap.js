@@ -1,15 +1,31 @@
 /**
- * /// GesCap.js ///
+ * /// Gestures.js ///
+ * 
+ * It can capture gesture (mouse movement / touch movement) and give 'direction' and 'movement' to some functions
+ * 
+ * @author YuHima <Twitter:@YuHima_03>
+ * @copyright (C)2021 YuHima
+ * @version 1.0.0 (2021-03-01)
  */
 
 class GestureCapture{
-    #targetElementDataset = {};
-    #targetEvent = {mouse: false, touch: false};
+    //コールバックの紐づけ
+    static #callbackList =  [];
+
+    static #targetID = String();
+    static #initial = undefined;
+
+    static #eventName = {
+            mousedown   :   "mousemove",
+            mouseup     :   "mousemove",
+            touchstart  :   "touchmove",
+            touchend    :   "touchmove"
+        };
 
     /**
-     * generate ID for dataset
+     * make ID
      */
-    #genID = () => {
+    static #genID() {
         let char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
         do{
@@ -21,85 +37,89 @@ class GestureCapture{
 
         return result;
     }
-
-    /**
-     * 
-     * @param {Object} targetEvent ```mouse```: capture mouse movement, ```touch```: capture touch movement
-     */
-    constructor(targetEvent = {mouse: true, touch: true}){
-        this.#targetEvent = targetEvent;
-
-        if(targetEvent.mouse){
-            document.addEventListener("mousedown", this.#start());
-            document.addEventListener("mouseup", this.#end());
-        }
-
-        if(targetEvent.touch){
-            document.addEventListener("touchstart", this.#start());
-            document.addEventListener("touchend", this.#end());
-        }
-    }
-
-    /**
-     * targetElement上で操作したときに発火させるやつ
-     * @param {HTMLElement|Any[HTMLElement]} targetElement 
-     * @param {Function} callback 
-     */
-    setFunction(targetElement, callback){
-        let elemList = [];
-        if(Array.isArray(targetElement)){
-            elemList = targetElement;
-        }
-        else{
-            elemList[0] = targetElement;
-        }
-
-        elemList.forEach(value => {
-            let ID = this.#genID();
-            value.dataset["gescapId"] = ID;
-            this.#targetElementDataset[ID] = value;
-        });
-    }
-
+    
     /**
      * start of movement
-     * @param {Object} thisObj GestureCapture自身
+     * @param {Event} event 
      */
-    #start(){
-        return (event) => {
-            switch(event.type){
-                case("mousedown"):
-                    document.addEventListener("mousemove", this.#middle());
-                    break;
-                case("touchstart"):
-                    break;
-            }
+    static start(event){
+        GestureCapture.#initial = event;
+        GestureCapture.#targetID = event.target.dataset["gescapId"];
+
+        switch(event.type){
+            case("mousedown"):
+
+                break;
+            case("touchstart"):
+                break;
         }
+
+        document.addEventListener(GestureCapture.#eventName[event.type], GestureCapture.middle);
+
+        return true;
     }
 
     /**
      * end of movement
-     * @param {Object} thisObj GestureCapture自身
+     * @param {Event} event 
      */
-    #end(){
-        return (event) => {
-            switch(event.type){
-                case("mousedown"):
-                    document.removeEventListener("mousemove", this.#middle());
-                    break;
-                case("touchstart"):
-                    break;
-            }
-        }
+    static end(event){
+        GestureCapture.#targetID = String();
+        document.removeEventListener(GestureCapture.#eventName[event.type], GestureCapture.middle);
+
+        return true;
     }
 
     /**
      * middle of movement
+     * @param {Event} event
      */
-    #middle(){
-        let f = (event) => {
-            console.log(this);
+    static middle(event){
+        if(isset(GestureCapture.#targetID)){
+            //コールバックの呼び出し
+            GestureCapture.#callbackList[GestureCapture.#targetID](event);
         }
-        return f;
+
+        return true;
+    }
+
+    /**
+     * execute ```callback``` when event occured on ```targetElement```
+     * @param {HTMLElement|Any[HTMLElement]} targetElement it also can be the return values of ```getElement(s)By~``` / ```querySelector(All)```
+     * @param {Function} callback
+     */
+    static addFunction(targetElement, callback = () => undefined){
+        //targetElementがHTMLElementの時
+        if(targetElement instanceof HTMLElement){
+            targetElement = [targetElement];
+        }
+        //HTMLCollection || NodeList は Arrayに変換
+        else if(targetElement instanceof HTMLCollection || targetElement instanceof NodeList){
+            targetElement = [...targetElement];
+        }
+        //配列でもないときはエラー吐いて終了
+        else if(!(targetElement instanceof Array)){
+            throw "targetElement must be HTMLElement or HTMLCollection or NodeList or Array!";
+        }
+
+        let ID = this.#genID();
+        targetElement.forEach(elem => {
+            //ID登録
+            elem.dataset["gescapId"] = ID;
+            //コールバックと紐づけ
+            GestureCapture.#callbackList[ID] = callback;
+        });
+
+        return true;
     }
 }
+
+//start of movement
+["mousedown", "touchstart"].forEach(value => {
+    document.addEventListener(value, GestureCapture.start);
+});
+
+//end of movement
+["mouseup", "touchend"].forEach(value => {
+    document.addEventListener(value, GestureCapture.end);
+});

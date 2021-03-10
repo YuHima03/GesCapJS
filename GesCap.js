@@ -215,13 +215,13 @@ class GestureCapture{
 
     /**
      * execute ```callback``` when event occured on ```targetElement```
-     * @param {HTMLElement|Any[HTMLElement]} targetElement it also can be the return values of ```getElement(s)By~``` / ```querySelector(All)```
+     * @param {Element|Any[Element]} targetElement it also can be the return values of ```getElement(s)By~``` / ```querySelector(All)```
      * @param {Function} callback
      * @param {Boolean} targetAllChildren
      */
     static addFunction(targetElement, callback = () => undefined, targetAllChildren = true){
-        //targetElementがHTMLElementの時
-        if(targetElement instanceof HTMLElement){
+        //targetElementがElementの時
+        if(targetElement instanceof Element){
             targetElement = [targetElement];
         }
         //HTMLCollection || NodeList は Arrayに変換
@@ -230,7 +230,7 @@ class GestureCapture{
         }
         //配列でもないときはエラー吐いて終了
         else if(!(targetElement instanceof Array)){
-            throw new Error("`targetElement` must be HTMLElement or HTMLCollection or NodeList or Array!");
+            throw new TypeError("`targetElement` must be Element or HTMLCollection or NodeList or Array!");
         }
 
         let ID = this.#genID();

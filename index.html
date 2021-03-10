@@ -79,12 +79,6 @@
                     width: 100%;
                 }
 
-        #gescapbox {
-            width: 50vw;
-            height: 300px;
-            background: gainsboro;
-        }
-
         #layer {
             display: none;
             position: fixed;
@@ -130,7 +124,7 @@
 
                 console.log(marginTop / height);
                 header_menu.style.marginTop = String(marginTop) + "px";
-                header_menu.style.boxShadow = "";
+                header_menu.style.boxShadow = replaceStyleValue(getStyleDeclarations(header_menu, false)["box-shadow"], [0, 3], '0em');
             }
 
             if(gesEvent.endOfMovement){

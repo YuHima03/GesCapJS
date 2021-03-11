@@ -29,8 +29,9 @@ class GestureEvent{
         //X,Y方向への変位
         this.movement_x = Obj.movement_x;
         this.movement_y = Obj.movement_y;
-        //ジェスチャーの終わりか否か(true -> 終わり, false -> まだ途中)
+        //ジェスチャーの(始まり/終わり)か否か(true -> 終わり, false -> まだ途中)
         this.endOfMovement = Obj.endOfMovement;
+        this.startOfMovement = Obj.startOfMovement;
         //ジェスチャーの速度(ひとつ前のイベントとの差から計測)
         this.speed = Obj.speed;
     }
@@ -46,6 +47,7 @@ class GestureCapture{
 
     //start時の情報
     static #initial = undefined;
+    static #startFlag = false;
 
     //1つ前のEventの情報
     static #last = undefined;
@@ -84,6 +86,8 @@ class GestureCapture{
     static start(event){
         GestureCapture.#initial = event;
         GestureCapture.#targetID = event.target.dataset["gescapId"];
+
+        GestureCapture.#startFlag = true;
 
         switch(event.type){
             case("mousedown"):
@@ -198,9 +202,12 @@ class GestureCapture{
                 movement_x  :   movement.x,
                 movement_y  :   movement.y,
                 endOfMovement   :   endOfMovement,
+                startOfMovement :   GestureCapture.#startFlag,
                 speed   :   speed,
             });
         }
+
+        if(GestureCapture.#startFlag)   GestureCapture.#startFlag = false;
 
         if(isset(GestureCapture.#targetID)){
             //コールバックの呼び出し

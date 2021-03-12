@@ -22,18 +22,19 @@
  */
 class GestureEvent{
     constructor(Obj){
-        //入力のタイプ(mouse/touch)
-        this.inputType = Obj.inputType;
-        //動きの方向(undefined/up/right/down/left)
-        this.direction = Obj.direction;
-        //X,Y方向への変位
-        this.movement_x = Obj.movement_x;
-        this.movement_y = Obj.movement_y;
-        //ジェスチャーの(始まり/終わり)か否か(true -> 終わり, false -> まだ途中)
-        this.endOfMovement = Obj.endOfMovement;
-        this.startOfMovement = Obj.startOfMovement;
-        //ジェスチャーの速度(ひとつ前のイベントとの差から計測)
-        this.speed = Obj.speed;
+        let keyList = [
+            "inputType",    //入力の種類(mouse/touch)
+            "direction",    //動きの方向(undefined/up/right/down/left)
+            "movement_x",   //X方向への動き(左<右)
+            "movement_y",   //Y方向への動き(上<下)
+            "speed",        //動きの速度(1つ前のイベントの変位と経過時間より算出)
+            "startOfMovement",  //動きの始まりかどうか
+            "endOfMovement",    //動きの終わりかどうか
+        ];
+
+        keyList.forEach(keyStr => {
+            this[keyStr] = Obj[keyStr];
+        });
     }
 }
 
@@ -51,6 +52,8 @@ class GestureCapture{
 
     //1つ前のEventの情報
     static #last = undefined;
+    //1つ前のGestureEventオブジェクトの情報
+    static #lastGesEvent = undefined;
 
     //方向
     static #direction = undefined;
@@ -117,6 +120,7 @@ class GestureCapture{
         GestureCapture.#initial = undefined;
         GestureCapture.#direction = undefined;
         GestureCapture.#last = undefined;
+        GestureCapture.#lastGesEvent = undefined;
 
         document.removeEventListener(GestureCapture.#eventName[event.type], GestureCapture.middle);
 
@@ -149,8 +153,8 @@ class GestureCapture{
                 //一本指
                 initial_x = GestureCapture.#initial.targetTouches[0].clientX;
                 initial_y = GestureCapture.#initial.targetTouches[0].clientY;
-                last_x = GestureCapture.#initial.targetTouches[0].clientX;
-                last_y = GestureCapture.#initial.targetTouches[0].clientY;
+                last_x = GestureCapture.#last.targetTouches[0].clientX;
+                last_y = GestureCapture.#last.targetTouches[0].clientY;
                 if(endOfMovement){
                     //離した指の情報はchangedTouchesで取得
                     event_x = event.changedTouches[0].clientX;
@@ -184,27 +188,34 @@ class GestureCapture{
             }
 
             //速度検出
-            let time = event.timeStamp - GestureCapture.#last.timeStamp;
-            let lastMovemtnt = {
-                x   :   event_x - last_x,
-                y   :   event_y - last_y
+            if(endOfMovement){
+                //動きの最後の場合は1つ前のEventとGestureEventオブジェクトを利用
+                GestureCapture.#lastGesEvent.endOfMovement = true;
+                GesEvent = GestureCapture.#lastGesEvent;
             }
-            let speed = {
-                speed   :   Math.sqrt(Math.pow(Math.abs(lastMovemtnt.x), 2) + Math.pow(Math.abs(lastMovemtnt.y), 2)) / time,
-                x   :   Math.abs(lastMovemtnt.x) / time,
-                y   :   Math.abs(lastMovemtnt.y) / time
-            }
+            else{
+                let time = event.timeStamp - GestureCapture.#last.timeStamp;
+                let lastMovemtnt = {
+                    x   :   event_x - last_x,
+                    y   :   event_y - last_y
+                }
+                let speed = {
+                    speed   :   Math.sqrt(Math.pow(lastMovemtnt.x, 2) + Math.pow(lastMovemtnt.y, 2)) / time,
+                    x   :   lastMovemtnt.x / time,
+                    y   :   lastMovemtnt.y / time
+                }
 
-            //ジェスチャーイベント
-            GesEvent = new GestureEvent({
-                inputType   :   (/^mouse/.test(event.type)) ? "mouse" : "touch",   
-                direction   :   GestureCapture.#direction,
-                movement_x  :   movement.x,
-                movement_y  :   movement.y,
-                endOfMovement   :   endOfMovement,
-                startOfMovement :   GestureCapture.#startFlag,
-                speed   :   speed,
-            });
+                //ジェスチャーイベント
+                GesEvent = new GestureEvent({
+                    inputType   :   (/^mouse/.test(event.type)) ? "mouse" : "touch",   
+                    direction   :   GestureCapture.#direction,
+                    movement_x  :   movement.x,
+                    movement_y  :   movement.y,
+                    endOfMovement   :   endOfMovement,
+                    startOfMovement :   GestureCapture.#startFlag,
+                    speed   :   speed,
+                });
+            }
         }
 
         if(GestureCapture.#startFlag)   GestureCapture.#startFlag = false;
@@ -216,6 +227,7 @@ class GestureCapture{
 
         //1つ前のイベント情報の更新
         GestureCapture.#last = event;
+        GestureCapture.#lastGesEvent = GesEvent;
 
         return true;
     }

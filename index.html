@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--キャッシュ無効化-->
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <!---->
     <title>Gestures.js</title>
     <script src="./GesCap.js"></script>
     <script src="../Calender4Students/js/main.js"></script>
@@ -128,8 +132,12 @@
             let header_menu_initial_marginTop = header.querySelector("#title").clientHeight;
             header_menu.style.marginTop = String(header_menu_initial_marginTop) + "px";
 
+            //動きがあった時のイベント
             GestureCapture.addFunction(document.getElementById("header"), (event, gesEvent) => {
+                //console.info(gesEvent);
+
                 if(gesEvent.startOfMovement){
+                    //動きの始まり
                     layer.style.display = 'block';
                     header_menu.style.boxShadow = 'none';
                 }
@@ -143,10 +151,22 @@
                 }
 
                 if(gesEvent.endOfMovement){
+                    //動きの終わり
+                    //スタイルのリセット
+                    if(gesEvent.movement_y >= header_menu.clientHeight / 2 || gesEvent.speed.y >= 0.5){
+                        console.log("開くよ")
+                    }
+                    else if(gesEvent.speed.y <= -0.5){
+                        console.log("開かないよ")
+                    }
                     header_menu.style.boxShadow = '';
                     layer.style.display = '';
                 }
             });
+        });
+
+        document.addEventListener("selectionchange", () => {
+            getSelection().removeAllRanges();
         });
     </script>
 </body>

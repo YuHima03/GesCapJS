@@ -11,98 +11,7 @@
     <title>Gestures.js</title>
     <script src="./GesCap.js"></script>
     <script src="../Calender4Students/js/main.js"></script>
-    <style>
-        ::selection {
-            background: none;
-        }
-
-        html {
-            font-family: 'Yu Gothic', system-ui,-apple-system, BlinkMacSystemFont, 'Segoe UI',sans-serif;
-            line-height: 1.5;
-            font-weight: 400;
-            font-size: 16px;
-
-            cursor: default;
-        }
-
-        p {
-            font-weight: 400;
-        }
-
-        body {
-            margin: 0 auto;
-        }
-
-        header {
-            position: sticky;
-            top: 0;
-            left: 0;
-
-            z-index: 5;
-
-            color: white;
-        }
-
-            header > div {
-                position: relative;
-            }
-
-                header > div > #title {
-                    display: inline-block;
-                    margin: 0;
-
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    z-index: 5;
-
-                    width: 100%;
-
-                    background: #2f2f2f;
-                }
-
-                    header > div > #title > h1 {
-                        font-size: 1.65rem;
-                        margin: .5em 1em;
-                    }
-
-                header > div > #header_menu {
-                    display: inline-block;
-                    margin: 0;
-                    transform: translateY(-100%);
-
-                    height: 50vh;
-
-                    color: #0f0f0f;
-                    background: white;
-                    box-shadow: rgba(192, 192, 192, 0.4) 0 0 1rem;
-                    border-radius: 0 0 1em 1em;
-
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    z-index: 4;
-
-                    width: 100%;
-                }
-
-        #layer {
-            display: none;
-            position: fixed;
-            z-index: 2;
-
-            width: 100%;
-            height: 100%;
-
-            background: #000000;
-
-            opacity: 0;
-        }
-
-        *{
-            touch-action: none;
-        }
-    </style>
+    <link rel="stylesheet" href="./style.css" type="text/css" />
 </head>
 <body>
     <header id="header">
@@ -121,16 +30,41 @@
     </header>
     <main>
     </main>
-    <div id="layer"></div>
+    <div id="layer" data-default-opacity='0.5'></div>
     <script>
         window.addEventListener("load", () => {
             let header = document.getElementById("header");
             let header_menu = document.querySelector("#header #header_menu");
             let layer = document.getElementById("layer");
+            let layer_defaultOpacity = Number(layer.dataset["defaultOpacity"]);
 
             //ヘッダーから引き出せるメニュー
             let header_menu_initial_marginTop = header.querySelector("#title").clientHeight;
             header_menu.style.marginTop = String(header_menu_initial_marginTop) + "px";
+
+            //一時保存情報
+            let tmp = {};
+
+            //メニュー開く
+            function header_menu_open(gesEvent){
+                layer.style.display = 'block';
+                layer.style.opacity = layer_defaultOpacity;
+                header_menu.style.marginTop = String(header_menu_initial_marginTop + header_menu.clientHeight) + "px";
+
+                return;
+            }
+            //メニュー閉じる
+            function header_menu_close(){
+                header_menu.style.marginTop = String(header_menu_initial_marginTop) + "px";
+                header_menu.style.boxShadow = '';
+
+                layer.style.opacity = '0';
+                setTimeout(() => {
+                    layer.style.display = '';
+                }, 150);
+
+                return;
+            }
 
             //動きがあった時のイベント
             GestureCapture.addFunction(document.getElementById("header"), (event, gesEvent) => {
@@ -140,33 +74,44 @@
                     //動きの始まり
                     layer.style.display = 'block';
                     header_menu.style.boxShadow = 'none';
+
+                    header_menu.classList.remove("tra");
+                    layer.classList.remove("tra");
                 }
 
                 if(gesEvent.direction == "down"){
                     let height = header_menu.clientHeight;
                     let marginTop = Math.min(Math.max(gesEvent.movement_y, 0), height);
 
+                    //
                     header_menu.style.marginTop = String(header_menu_initial_marginTop + marginTop) + "px";
-                    layer.style.opacity = String(marginTop / height * 0.5);
+                    layer.style.opacity = String(marginTop / height * layer_defaultOpacity);
                 }
 
                 if(gesEvent.endOfMovement){
                     //動きの終わり
-                    //スタイルのリセット
-                    if(gesEvent.movement_y >= header_menu.clientHeight / 2 || gesEvent.speed.y >= 0.5){
-                        console.log("開くよ")
+                    header_menu.classList.add("tra");
+                    layer.classList.add("tra");
+
+                    //指を離した位置 or スワイプの速度 で決定
+                    let judge = [(gesEvent.movement_y >= header_menu.clientHeight / 2), (gesEvent.speed.y >= .5), (gesEvent.speed.y <= -.5)];
+                    if((judge[0] && !judge[2]) || judge[1]){
+                        header_menu_open(gesEvent);
                     }
-                    else if(gesEvent.speed.y <= -0.5){
-                        console.log("開かないよ")
+                    else if((!judge[0] && !judge[1]) || judge[2]){
+                        header_menu_close();
                     }
-                    header_menu.style.boxShadow = '';
-                    layer.style.display = '';
                 }
+
+                return;
             });
+
+            return;
         });
 
         document.addEventListener("selectionchange", () => {
             getSelection().removeAllRanges();
+            return;
         });
     </script>
 </body>

@@ -6,35 +6,100 @@
  * 
  * @author YuHima <Twitter:@YuHima_03>
  * @copyright (C)2021 YuHima
- * @version 1.0.0 (2021-03-09)
+ * @version 1.0.0 (2021-03-15)
  */
-
-//////////////////////////////////////////////////
-// 関数群
-
-
 
 //////////////////////////////////////////////////
 // クラス達
 
-/**
- * @classdesc ジェスチャーの情報(GestureCaptureからコールバックに渡される)
- */
-class GestureEvent{
-    constructor(Obj){
-        let keyList = [
-            "inputType",    //入力の種類(mouse/touch)
-            "direction",    //動きの方向(undefined/up/right/down/left)
-            "movement_x",   //X方向への動き(左<右)
-            "movement_y",   //Y方向への動き(上<下)
-            "speed",        //動きの速度(1つ前のイベントの変位と経過時間より算出)
-            "startOfMovement",  //動きの始まりかどうか
-            "endOfMovement",    //動きの終わりかどうか
-        ];
 
-        keyList.forEach(keyStr => {
-            this[keyStr] = Obj[keyStr];
+/**
+ * @classdesc ```GestureCapture```での対象の要素のグループ
+ */
+class GescapGroup{
+    static #list = {}
+
+    /**
+     * ```constructor```で受け取った引数どもの中にある``Element```要素を取り出す
+     * @param {Any[]} arg 
+     * @returns {Array}
+     */
+    static #getAllElementsInArgument(arg){
+        let result = Array();
+
+        arg.forEach(value => {
+            if(Element.isElement(value)){
+                result.push(value);
+            }
+            else if(Array.isArray(value) || value instanceof NodeList || value instanceof HTMLCollection){
+                result.push(...this)
+            }
+            else{
+                throw new TypeError("`targetElement` must be Element / Array / NodeList / HTMLCollection");
+            }
         });
+
+        return result;
+    }
+
+    /**
+     * GescapID 用の10文字のIDを作る
+     * @returns {String[10]}
+     */
+    static #genID() {
+        let char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        do{
+            var result = String();
+            for(let i = 0; i < 10; i++){
+                result += char.charAt(Math.random() * char.length);
+            }
+        }while(document.querySelector(`*[data-gescap-id="${result}"]`) !== null);
+
+        return result;
+    }
+
+    /**
+     * Create new group
+     * @param {Element|Any[]|NodeList|HTMLCollection} targetElement 
+     * @returns {Void}
+     */
+    constructor(...targetElement){
+        GescapGroup.#getAllElementsInArgument([...targetElement]).forEach(element => {
+
+        });
+
+        return;
+    }
+
+    /**
+     * remove the group
+     * @returns {Void}
+     */
+    removeGroup = () => {
+        [...document.querySelectorAll(`[data-gescap-id='${this.gescapId}']`)].forEach(element => {
+            element.dataset["gescapId"] = "";
+        });
+
+        return;
+    }
+
+    /**
+     * remove element(s) from the group
+     * @param {Element} targetElement 
+     * @returns {Void}
+     */
+    removeElement = (targetElement) => {
+
+    }
+
+    /**
+     * add element(s) from the group
+     * @param {Element} targetElement 
+     * @returns {Void}
+     */
+    addElement = (targetElement) => {
+        
     }
 }
 
@@ -43,7 +108,7 @@ class GestureEvent{
  */
 class GestureCapture{
     //コールバックの紐づけ
-    static #callbackList =  [];
+    static #callbackList =  {};
     static #targetID = String();
 
     //start時の情報
@@ -207,6 +272,7 @@ class GestureCapture{
 
                 //ジェスチャーイベント
                 GesEvent = new GestureEvent({
+                    gescapId    :   GestureCapture.#targetID,
                     inputType   :   (/^mouse/.test(event.type)) ? "mouse" : "touch",   
                     direction   :   GestureCapture.#direction,
                     movement_x  :   movement.x,
@@ -270,8 +336,63 @@ class GestureCapture{
 
         return true;
     }
+
+    /**
+     * キャプチャ対象の一覧
+     * @param {String|GestureEvent|null} [gescapId=null] `null`の場合は総一覧を取得
+     * @returns {Array}
+     */
+    static getGescapGroup(gescapId = null){
+        let result = Array();
+
+        if(gescapId === null){
+            //nullの場合は総一覧
+            result = {};
+            Object.keys(GestureCapture.#callbackList).forEach(key => {
+                result[key] = (GestureCapture.getGescapGroup(key));
+            });
+        }
+        else if(gescapId instanceof GestureEvent){
+            //GestureEventオブジェクトの場合はIDを取り出す
+            gescapId = gescapId.gescapId;
+        }
+
+        [...document.querySelectorAll(`[data-gescap-id='${gescapId}']`)].forEach(element => {
+            result.push(element);
+        });
+
+        return result;
+    }
 }
 
+/**
+ * @classdesc ジェスチャーの情報(```GestureCapture```からコールバックに渡される)
+ */
+ class GestureEvent{
+    constructor(Obj){
+        /*
+            "gescapId",    //要素の`data-gescap-id`
+            "inputType",    //入力の種類(mouse/touch)
+            "direction",    //動きの方向(undefined/up/right/down/left)
+            "movement_x",   //X方向への動き(左<右)
+            "movement_y",   //Y方向への動き(上<下)
+            "speed",        //動きの速度(1つ前のイベントの変位と経過時間より算出)
+            "startOfMovement",  //動きの始まりかどうか
+            "endOfMovement",    //動きの終わりかどうか
+        */
+
+        this.gescapId = Obj.gescapId;
+        this.inputType = Obj.inputType;
+        this.direction = Obj.direction;
+        this.movement_x = Obj.movement_x;
+        this.movement_y = Obj.movement_y;
+        this.speed = Obj.speed;
+        this.startOfMovement = Obj.startOfMovement;
+        this.endOfMovement = Obj.endOfMovement;
+
+        return;
+    }
+}
 //start of movement
 ["mousedown", "touchstart"].forEach(value => {
     document.addEventListener(value, GestureCapture.start);

@@ -9,129 +9,10 @@
  * @version 1.0.0 (2021-03-15)
  */
 
-//////////////////////////////////////////////////
-// クラス達
-
-
-/**
- * @classdesc ```GestureCapture```での対象の要素のグループ
- */
-class GescapGroup{
-    static #list = {}
-
-    /**
-     * ```constructor```で受け取った引数どもの中にある``Element```要素を取り出す
-     * @param {Any[]} arg 
-     * @returns {Array}
-     */
-    static #getAllElementsInArgument(arg){
-        let result = Array();
-
-        arg.forEach(value => {
-            if(value instanceof Element){
-                result.push(value);
-            }
-            else if(Array.isArray(value) || value instanceof NodeList || value instanceof HTMLCollection){
-                result.push(...GescapGroup.#getAllElementsInArgument(value));
-            }
-            else{
-                throw new TypeError("`targetElement` must be Element / Array / NodeList / HTMLCollection");
-            }
-        });
-
-        return result;
-    }
-
-    /**
-     * GescapID 用の10文字のIDを作る
-     * @returns {String[10]}
-     */
-    static #genID() {
-        let char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-        do{
-            var result = String();
-            for(let i = 0; i < 10; i++){
-                result += char.charAt(Math.random() * char.length);
-            }
-        }while(document.querySelector(`*[data-gescap-id="${result}"]`) !== null);
-
-        return result;
-    }
-
-    /**
-     * Create new group
-     * @param {Element|Any[]|NodeList|HTMLCollection} targetElement 
-     * @param {Boolean} targetAllChildren
-     * @returns {Void}
-     */
-    constructor(targetAllChildren, ...targetElement){
-        let id = GescapGroup.#genID();
-        let elementsList = GescapGroup.#getAllElementsInArgument([...targetElement]);
-
-        elementsList.forEach(element => {
-            if(element.dataset["gescapId"] !== undefined && element.dataset["gescapId"] != ""){
-                throw new Error("You can't add grouped element into new group!");
-            }
-        });
-
-        elementsList.forEach(element => {
-            element.dataset["gescapId"] = id;
-        });
-
-        this.gescapId = id;
-
-        return;
-    }
-
-    /**
-     * remove the group
-     */
-    removeGroup(){
-        [...document.querySelectorAll(`[data-gescap-id='${this.gescapId}']`)].forEach(element => {
-            element.dataset["gescapId"] = "";
-        });
-
-        return;
-    }
-
-    /**
-     * add element(s) into the group
-     * @param {Element} targetElement 
-     */
-    addElement(targetElement){
-        
-    }
-
-    /**
-     * remove element(s) from the group
-     * @param {Element} targetElement 
-     */
-    removeElement(targetElement){
-
-    }
-
-    /**
-     * add function into the group
-     * @param {Function} callback 
-     */
-    addFunction(...callback){
-
-    }
-
-    /**
-     * remove function from the group
-     * @param {Function} callback 
-     */
-    removeFunction(...callback){
-
-    }
-}
-
 /**
  * @classdesc ジェスチャーの情報(```GestureCapture```からコールバックに渡される)
  */
- class GestureEvent{
+class GestureEvent{
     constructor(Obj){
         /*
             "gescapId",    //要素の`data-gescap-id`
@@ -416,6 +297,99 @@ class GestureCapture{
         });
 
         return result;
+    }
+    
+    /**
+     * ```constructor```で受け取った引数どもの中にある```Element```要素を取り出す
+     * @param {Any[]} arg 
+     * @returns {Array}
+     */
+    static #getAllElementsInArgument(arg){
+        let result = Array();
+
+        arg.forEach(value => {
+            if(value instanceof Element){
+                result.push(value);
+            }
+            else if(Array.isArray(value) || value instanceof NodeList || value instanceof HTMLCollection){
+                result.push(...GescapGroup.#getAllElementsInArgument(value));
+            }
+            else{
+                throw new TypeError("`targetElement` must be Element / Array / NodeList / HTMLCollection");
+            }
+        });
+
+        return result;
+    }
+
+    /**
+     * Create a new group
+     * @param {Element|Any[]|NodeList|HTMLCollection} targetParentElement 
+     * @returns {Void}
+     */
+    constructor(...targetParentElement){
+        let id = GescapGroup.#genID();
+        let elementsList = GestureCapture.#getAllElementsInArgument([...targetParentElement]);
+
+        //idの重複チェック
+        elementsList.forEach(element => {
+            let dataset_gescapId = element.dataset["gescapId"];
+            if(dataset_gescapId !== undefined && dataset_gescapId != "" && dataset_gescapId != id){
+                throw new Error("You can't add any grouped elements into the new group!");
+            }
+        });
+
+        //id登録
+        elementsList.forEach(element => {
+            element.dataset["gescapId"] = id;
+        });
+
+        this.gescapId = id;
+
+        return;
+    }
+
+    /**
+     * remove the group
+     */
+    removeGroup(){
+        [...document.querySelectorAll(`[data-gescap-id='${this.gescapId}']`)].forEach(element => {
+            element.dataset["gescapId"] = "";
+        });
+
+        return;
+    }
+
+    /**
+     * add element(s) into the group
+     * @param {Element} targetElement 
+     */
+    addElement(targetElement){
+        
+    }
+
+    /**
+     * remove element(s) from the group
+     * @param {Element} targetElement 
+     */
+    removeElement(targetElement){
+
+    }
+
+    /**
+     * add function into the group
+     * @param {Function} callback 
+     */
+    addFunction(...callback){
+
+    }
+
+    /**
+     * remove function from the group
+     * @param {Function} callback 
+     */
+    removeFunction(...callback){
+
     }
 }
 

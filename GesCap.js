@@ -28,11 +28,11 @@ class GescapGroup{
         let result = Array();
 
         arg.forEach(value => {
-            if(Element.isElement(value)){
+            if(value instanceof Element){
                 result.push(value);
             }
             else if(Array.isArray(value) || value instanceof NodeList || value instanceof HTMLCollection){
-                result.push(...this)
+                result.push(...GescapGroup.#getAllElementsInArgument(value));
             }
             else{
                 throw new TypeError("`targetElement` must be Element / Array / NodeList / HTMLCollection");
@@ -62,21 +62,32 @@ class GescapGroup{
     /**
      * Create new group
      * @param {Element|Any[]|NodeList|HTMLCollection} targetElement 
+     * @param {Boolean} targetAllChildren
      * @returns {Void}
      */
-    constructor(...targetElement){
-        GescapGroup.#getAllElementsInArgument([...targetElement]).forEach(element => {
+    constructor(targetAllChildren, ...targetElement){
+        let id = GescapGroup.#genID();
+        let elementsList = GescapGroup.#getAllElementsInArgument([...targetElement]);
 
+        elementsList.forEach(element => {
+            if(element.dataset["gescapId"] !== undefined && element.dataset["gescapId"] != ""){
+                throw new Error("You can't add grouped element into new group!");
+            }
         });
+
+        elementsList.forEach(element => {
+            element.dataset["gescapId"] = id;
+        });
+
+        this.gescapId = id;
 
         return;
     }
 
     /**
      * remove the group
-     * @returns {Void}
      */
-    removeGroup = () => {
+    removeGroup(){
         [...document.querySelectorAll(`[data-gescap-id='${this.gescapId}']`)].forEach(element => {
             element.dataset["gescapId"] = "";
         });
@@ -85,21 +96,64 @@ class GescapGroup{
     }
 
     /**
+     * add element(s) into the group
+     * @param {Element} targetElement 
+     */
+    addElement(targetElement){
+        
+    }
+
+    /**
      * remove element(s) from the group
      * @param {Element} targetElement 
-     * @returns {Void}
      */
-    removeElement = (targetElement) => {
+    removeElement(targetElement){
 
     }
 
     /**
-     * add element(s) from the group
-     * @param {Element} targetElement 
-     * @returns {Void}
+     * add function into the group
+     * @param {Function} callback 
      */
-    addElement = (targetElement) => {
-        
+    addFunction(...callback){
+
+    }
+
+    /**
+     * remove function from the group
+     * @param {Function} callback 
+     */
+    removeFunction(...callback){
+
+    }
+}
+
+/**
+ * @classdesc ジェスチャーの情報(```GestureCapture```からコールバックに渡される)
+ */
+ class GestureEvent{
+    constructor(Obj){
+        /*
+            "gescapId",    //要素の`data-gescap-id`
+            "inputType",    //入力の種類(mouse/touch)
+            "direction",    //動きの方向(undefined/up/right/down/left)
+            "movement_x",   //X方向への動き(左<右)
+            "movement_y",   //Y方向への動き(上<下)
+            "speed",        //動きの速度(1つ前のイベントの変位と経過時間より算出)
+            "startOfMovement",  //動きの始まりかどうか
+            "endOfMovement",    //動きの終わりかどうか
+        */
+
+        this.gescapId = Obj.gescapId;
+        this.inputType = Obj.inputType;
+        this.direction = Obj.direction;
+        this.movement_x = Obj.movement_x;
+        this.movement_y = Obj.movement_y;
+        this.speed = Obj.speed;
+        this.startOfMovement = Obj.startOfMovement;
+        this.endOfMovement = Obj.endOfMovement;
+
+        return;
     }
 }
 
@@ -365,34 +419,6 @@ class GestureCapture{
     }
 }
 
-/**
- * @classdesc ジェスチャーの情報(```GestureCapture```からコールバックに渡される)
- */
- class GestureEvent{
-    constructor(Obj){
-        /*
-            "gescapId",    //要素の`data-gescap-id`
-            "inputType",    //入力の種類(mouse/touch)
-            "direction",    //動きの方向(undefined/up/right/down/left)
-            "movement_x",   //X方向への動き(左<右)
-            "movement_y",   //Y方向への動き(上<下)
-            "speed",        //動きの速度(1つ前のイベントの変位と経過時間より算出)
-            "startOfMovement",  //動きの始まりかどうか
-            "endOfMovement",    //動きの終わりかどうか
-        */
-
-        this.gescapId = Obj.gescapId;
-        this.inputType = Obj.inputType;
-        this.direction = Obj.direction;
-        this.movement_x = Obj.movement_x;
-        this.movement_y = Obj.movement_y;
-        this.speed = Obj.speed;
-        this.startOfMovement = Obj.startOfMovement;
-        this.endOfMovement = Obj.endOfMovement;
-
-        return;
-    }
-}
 //start of movement
 ["mousedown", "touchstart"].forEach(value => {
     document.addEventListener(value, GestureCapture.start);

@@ -9,7 +9,7 @@
     <meta http-equiv="Cache-Control" content="no-cache">
     <!---->
     <title>Gestures.js</title>
-    <script src="./GesCap.js"></script>
+    <script src="./GestureDetector.js"></script>
     <script src="../Calender4Students/js/main.js"></script>
     <link rel="stylesheet" href="./style.css" type="text/css" />
 </head>
@@ -24,7 +24,7 @@
             </div>
             <!--タイトル-->
             <div id="title">
-                <h1>Gesture Capture JS</h1>
+                <h1>Gesture Detector JS</h1>
             </div>
         </div>
     </header>
@@ -67,7 +67,8 @@
             }
 
             //動きがあった時のイベント
-            GestureCapture.addFunction(document.getElementById("header"), (event, gesEvent) => {
+            let header_gesture = new GestureDetector(true, document.getElementById("header"));
+            header_gesture.addFunction((event, gesEvent) => {
                 //console.info(gesEvent);
 
                 if(gesEvent.startOfMovement){

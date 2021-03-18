@@ -43,18 +43,26 @@
             header_menu.style.marginTop = String(header_menu_initial_marginTop) + "px";
 
             //一時保存情報
-            let tmp = {};
+            //let tmp = {};
 
+            //GestureDetectorオブジェクト
+            let header_gesture = new GestureDetector(true, document.getElementById("header"));
+            
             //メニュー開く
             function header_menu_open(gesEvent){
+                header_menu.classList.add("open");
+                header_menu.style.marginTop = String(header_menu_initial_marginTop + header_menu.clientHeight) + "px";
+                
                 layer.style.display = 'block';
                 layer.style.opacity = layer_defaultOpacity;
-                header_menu.style.marginTop = String(header_menu_initial_marginTop + header_menu.clientHeight) + "px";
+
+                header_gesture.addElement(true, document.getElementById("layer"));
 
                 return;
             }
             //メニュー閉じる
             function header_menu_close(){
+                header_menu.classList.remove("open");
                 header_menu.style.marginTop = String(header_menu_initial_marginTop) + "px";
                 header_menu.style.boxShadow = '';
 
@@ -63,11 +71,12 @@
                     layer.style.display = '';
                 }, 150);
 
+                header_gesture.removeElement(true, document.getElementById("layer"));
+
                 return;
             }
 
             //動きがあった時のイベント
-            let header_gesture = new GestureDetector(true, document.getElementById("header"));
             header_gesture.addFunction((event, gesEvent) => {
                 //console.info(gesEvent);
 

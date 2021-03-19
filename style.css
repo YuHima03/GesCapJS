@@ -23,6 +23,7 @@ p {
 
 body {
     margin: 0 auto;
+    background: whitesmoke;
 }
 
 header {
@@ -42,11 +43,6 @@ header {
         header > div > #title {
             display: inline-block;
             margin: 0;
-
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 5;
 
             width: 100%;
 
@@ -73,7 +69,7 @@ header {
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 4;
+            z-index: -1;
 
             width: 100%;
         }
@@ -85,6 +81,8 @@ header {
     display: none;
     position: fixed;
     z-index: 2;
+    top: 0;
+    left: 0;
 
     width: 100%;
     height: 100%;
@@ -96,4 +94,14 @@ header {
 
     #layer.tra {
         transition: 150ms ease-out opacity;
+    }
+
+
+#main {
+    display: block;
+    background: white;
+}
+
+    #main.tra {
+        transition: 150ms ease-out margin-top;
     }

@@ -38,16 +38,19 @@ class GestureEvent{
          * @type {string[10]}
          */
         this.gesdetId = Obj.gesdetId;
+
         /**
          * @description 入力の種類 || type of input
          * @type {MovementType}
          */
         this.inputType = Obj.inputType;
+
         /**
          * @description 動きの方向 || direction of the movement
          * @type {MovementDirection}
          */
         this.direction = Obj.direction;
+        
         /**
          * @description X方向への変位 || X displacement
          * @type {!number}
@@ -73,8 +76,6 @@ class GestureEvent{
          * @type {boolean}
          */
         this.endOfMovement = Obj.endOfMovement;
-
-        return;
     }
 }
 
@@ -94,7 +95,7 @@ class GestureDetector{
     /**
      * @type {string[10]}
      */
-    static _targetID = String();
+    static _targetID = "";
     /**
      * start時の情報
      * @type {MovementEvent}
@@ -136,7 +137,7 @@ class GestureDetector{
         let char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
         do{
-            var result = String();
+            var result = "";
             for(let i = 0; i < 10; i++){
                 result += char.charAt(Math.random() * char.length);
             }
@@ -181,7 +182,7 @@ class GestureDetector{
             GestureDetector.middle(event, true);
         }
 
-        GestureDetector._targetID = String();
+        GestureDetector._targetID = "";
         GestureDetector._initial = undefined;
         GestureDetector._direction = undefined;
         GestureDetector._last = undefined;
@@ -257,7 +258,7 @@ class GestureDetector{
             }
 
             //速度検出
-            if(endOfMovement){
+            if(endOfMovement && isset(GestureDetector._lastGesEvent)){
                 //動きの最後の場合は1つ前のEventとGestureEventオブジェクトを利用
                 GestureDetector._lastGesEvent.endOfMovement = true;
                 GesEvent = GestureDetector._lastGesEvent;
@@ -315,7 +316,7 @@ class GestureDetector{
      * @returns {Array.<Element>}
      */
     static getgesdetGroup(gesdetId = null){
-        let result = Array();
+        let result = [];
 
         if(gesdetId === null){
             //nullの場合は総一覧
@@ -343,7 +344,7 @@ class GestureDetector{
      * @returns {Array}
      */
     static _getAllElementsInArgument(arg, targetAllChildren){
-        let result = Array();
+        let result = [];
 
         arg.forEach(value => {
             if(value instanceof Element){
@@ -377,7 +378,7 @@ class GestureDetector{
     constructor(targetAllChildren, ...targetElement){
         this.gesdetId = undefined;
         this.addElement(targetAllChildren, ...targetElement);
-        GestureDetector._callbackList[this.gesdetId] = Array();
+        GestureDetector._callbackList[this.gesdetId] = [];
 
         return;
     }

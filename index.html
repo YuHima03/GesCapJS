@@ -126,6 +126,7 @@
                 }
             });
 
+            //メインコンテナの再読み込みのやつ
             let main = document.getElementById("main");
             let main_gesture = new GestureDetector(true, main);
             main_gesture.addFunction((event, gesEvent) => {
@@ -141,6 +142,10 @@
                 if(gesEvent.endOfMovement){
                     main.classList.add("tra");
                     main.style.marginTop = '';
+
+                    if(gesEvent.movement_y >= window.innerHeight / 2){
+                        location.reload();
+                    }
                 }
             });
 

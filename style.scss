@@ -1,0 +1,16 @@
+body {
+    ul {
+        li {
+            list-style: none;
+
+            %color {
+                color: #0f0f0f;
+            }
+
+            &__title {
+                @extend %color;
+                font-size: 1.25rem;
+            }
+        }
+    }
+}

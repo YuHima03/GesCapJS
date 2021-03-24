@@ -28,135 +28,15 @@
             </div>
         </div>
     </header>
+    <div id="sideMenu"></div>
     <main id="main">
         <div style="display: inline-block;">
             <h2>ようこそ</h2>
         </div>
     </main>
     <div id="layer" data-default-opacity='0.5'></div>
+    <script src="./sample_main.js"></script>
     <script>
-        window.addEventListener("load", () => {
-            let header = document.getElementById("header");
-            let header_menu = document.querySelector("#header #header_menu");
-            let layer = document.getElementById("layer");
-            let layer_defaultOpacity = Number(layer.dataset["defaultOpacity"]);
-
-            //ヘッダーから引き出せるメニュー
-            let headerMenu_initial = new saveElementValue(header_menu);
-            let headerTitle_initial = new saveElementValue(header.querySelector("#title"), "clientHeight");
-            header_menu.style.marginTop = String(headerTitle_initial.data["clientHeight"]) + "px";
-
-            //一時保存情報
-            //let tmp = {};
-
-            //GestureDetectorオブジェクト
-            let header_gesture = new GestureDetector(true, document.getElementById("header"));
-            
-            //メニュー開く
-            function header_menu_open(gesEvent){
-                header_menu.classList.add("open");
-                header_menu.style.marginTop = String(headerTitle_initial.data["clientHeight"] + header_menu.clientHeight) + "px";
-                
-                layer.style.display = 'block';
-                layer.style.opacity = layer_defaultOpacity;
-
-                header_gesture.addElement(true, document.getElementById("layer"));
-
-                return;
-            }
-            //メニュー閉じる
-            function header_menu_close(){
-                header_menu.classList.remove("open");
-                header_menu.style.marginTop = String(headerTitle_initial.data["clientHeight"]) + "px";
-                header_menu.style.boxShadow = '';
-
-                layer.style.opacity = '0';
-                setTimeout(() => {
-                    layer.style.display = '';
-                }, 150);
-
-                header_gesture.removeElement(true, document.getElementById("layer"));
-
-                return;
-            }
-
-            //動きがあった時のイベント
-            header_gesture.addFunction((event, gesEvent) => {
-                //console.info(gesEvent);
-
-                if(gesEvent.startOfMovement){
-                    //動きの始まり
-                    header_menu.classList.remove("tra");
-                    header_menu.style.boxShadow = 'none';
-
-                    layer.style.display = 'block';
-                    layer.classList.remove("tra");
-
-                    headerMenu_initial.updateData("style.marginTop");
-                }
-
-                if(gesEvent.direction == "down" || gesEvent.direction == "up"){
-                    //メニューの高さ
-                    let height = header_menu.clientHeight;
-                    //ヘッダーの高さ
-                    let menuHeight = headerTitle_initial.data["clientHeight"];
-                    //メニューの移動量のみを見た時のマージン
-                    let relMarginTop = Math.max(Math.min(gesEvent.movement_y + removeUnit(headerMenu_initial.data["style.marginTop"]) - menuHeight, height), 0);
-                    //実際に適応するマージン
-                    let marginTop = relMarginTop + menuHeight;
-
-                    if(!gesEvent.endOfMovement){
-                        header_menu.style.marginTop = String(marginTop) + "px";
-                        layer.style.opacity = relMarginTop / height * layer_defaultOpacity; //割合で決める
-                    }
-                    else{
-                        //動きの終わり
-                        header_menu.classList.add("tra");
-                        layer.classList.add("tra");
-
-                        //指を離した位置 or スワイプの速度 で決定
-                        let judge = [(relMarginTop >= height / 2), (gesEvent.speed.y >= .5), (gesEvent.speed.y <= -.5)];
-                        if((judge[0] && !judge[2]) || judge[1]){
-                            header_menu_open(gesEvent);
-                        }
-                        else if((!judge[0] && !judge[1]) || judge[2]){
-                            header_menu_close();
-                        }
-                    }
-                }
-            });
-
-            //メインコンテナの再読み込みのやつ
-            let main = document.getElementById("main");
-            let main_gesture = new GestureDetector(true, main);
-            main_gesture.addFunction((event, gesEvent) => {
-                if(window.scrollY === 0){
-                    if(gesEvent.startOfMovement){
-                        main.classList.remove("tra");
-                    }
-
-                    let marginTop = Math.max(gesEvent.movement_y * 0.15, 0);
-                    main.style.marginTop = String(marginTop) + "px";
-                }
-
-                if(gesEvent.endOfMovement){
-                    main.classList.add("tra");
-                    main.style.marginTop = '';
-
-                    if(gesEvent.movement_y >= window.innerHeight / 2){
-                        location.reload();
-                    }
-                }
-            });
-
-            //画面サイズ変更時
-            window.addEventListener("resize", () => {
-                //
-                headerMenu_initial.updateData();
-                headerTitle_initial.updateData();
-            });
-        });
-
         document.addEventListener("selectionchange", () => {
             getSelection().removeAllRanges();
             return;

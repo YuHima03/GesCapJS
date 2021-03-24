@@ -24,6 +24,14 @@
  * @typedef MovementType
  * @type {('mouse'|'touch')}
  */
+/**
+ * @typedef GestureDetectorOption
+ * @type {{deep: !boolean, overwrite: !boolean, parentGroup: GestureDetector}}
+ */
+/**
+ * @callback GestureDetectorFunction
+ * @type {(event: (MouseEvent|TouchEvent), gesEvent: GestureEvent)}
+ */
 
 /**
  * @class
@@ -128,6 +136,17 @@ class GestureDetector{
             touchstart  :   "touchmove",
             touchend    :   "touchmove"
         };
+
+    /**
+     * GestureListenerで設定されたコールバックのリスト(addFunctionで設定されたものも追加される)
+     * @type {Object.<string, {
+     * all: Array.<GestureDetectorFunction>, mousemove: Array.<GestureDetectorFunction>, touchmove: Array.<GestureDetectorFunction>,
+     * pinch: Array.<GestureDetectorFunction>, pinchin: Array.<GestureDetectorFunction>, pinchout: Array.<GestureDetectorFunction>,
+     * single: Array.<GestureDetectorFunction>, singleclick: Array.<GestureDetectorFunction>, singletap: Array.<GestureDetectorFunction>,
+     * double: Array.<GestureDetectorFunction>, doubleclick: Array.<GestureDetectorFunction>, doubletap: Array.<GestureDetectorFunction>
+     * }>}
+     */
+    static listenerList = {}
 
     /**
      * 10文字のID生成
@@ -339,30 +358,46 @@ class GestureDetector{
     
     /**
      * ```constructor```で受け取った引数どもの中にある```Element```要素を取り出す
-     * @param {Any[]} arg 
-     * @param {Boolean} targetAllChildren 子要素も自動的に対象に入れる
-     * @returns {Array}
+     * @param {(HTMLElement|Array.<HTMLElement>|Any[]|NodeList|HTMLCollection)} targetElement
+     * @param {Boolean} deep 子要素も自動的に対象に入れる
+     * @returns {Array.<HTMLElement>}
      */
-    static _getAllElementsInArgument(arg, targetAllChildren){
+    static _getAllElementsInArgument(targetElement, deep){
         let result = [];
+        let typeErrorText = "`targetElement` must be Element or Array (values must be Element) or HTMLCollection (you can get from getElementBy__) or NodeList (you can get from querySelector(All))";
 
-        arg.forEach(value => {
+        if(targetElement instanceof HTMLElement){
+            //要素だけの場合
+            targetElement = [targetElement];
+        }
+        else if(targetElement instanceof HTMLCollection || targetElement instanceof NodeList){
+            //配列
+            targetElement = [...targetElement];
+        }
+        else if(!Array.isArray(targetElement)){
+            throw new TypeError(typeErrorText);
+        }
+
+        targetElement.forEach(value => {
             if(value instanceof Element){
-                if(targetAllChildren)
+                if(deep){
                     result.push(value, ...getAllChildren(value));
-                else
+                }
+                else{
                     result.push(value);
+                }
             }
             else if(Array.isArray(value) || value instanceof NodeList || value instanceof HTMLCollection){
                 result.push(value, ...GestureDetector._getAllElementsInArgument(value));
             }
             else{
-                throw new TypeError("`targetElement` must be Element / Array / NodeList / HTMLCollection");
+                throw new TypeError(typeErrorText);
             }
         });
 
         return result;
     }
+
 
     /////////////////////////////////////////////
     // 以下動的メソッド
@@ -371,13 +406,15 @@ class GestureDetector{
      * @description 新しいグループを作成
      * @description Create a new group
      * 
-     * @param {Boolean} targetAllChildren ```targetElement```の全ての子要素もグループに追加する || add all child elements of ```targetElement``` into the group
-     * @param {(Element|Any[]|NodeList|HTMLCollection)} targetElement 
-     * @returns {Void}
+     * @param {(HTMLElement|Array.<HTMLElement>|Any[]|NodeList|HTMLCollection)} targetElement 
+     * @param {GestureDetectorOption} option
+     * 
      */
-    constructor(targetAllChildren, ...targetElement){
+    constructor(targetElement, option = null){
+        /**@type {string[10]} */
         this.gesdetId = undefined;
-        this.addElement(targetAllChildren, ...targetElement);
+
+        this.addElement(targetElement, option);
         GestureDetector._callbackList[this.gesdetId] = [];
 
         return;
@@ -397,26 +434,51 @@ class GestureDetector{
 
     /**
      * @description 要素をグループに追加 || Add element(s) into the group
-     * @param {Boolean} targetAllChildren ```targetElement```の全ての子要素もグループに追加する || Add all child elements of ```targetElement``` into the group
-     * @param {(Element|Any[]|NodeList|HTMLCollection)} targetElement 対象の要素 || Target element(s)
+     * @param {(HTMLElement|Array.<HTMLElement>|Any[]|NodeList|HTMLCollection)} targetElement 対象の要素 || Target element(s)
+     * @param {GestureDetectorOption} option `deep`: 全ての子要素を対象に || target all children `overwrite`: 所属グループが既にあった場合でも上書き || overwrite belonging group even if it is already defined `parentGroup`: 親グループ || parent group
      */
-    addElement(targetAllChildren, ...targetElement){
-        if(!isset(this.gesdetId))   this.gesdetId = GestureDetector._genID();
+    addElement(targetElement, option = null){
+        //オプション
+        if(option === null){
+            option = {};
+        }
+        else if(typeof(option) !== "object"){
+            //optionがObjectじゃない
+            throw new TypeError("`option` must be Object!");
+        }
 
-        let id = this.gesdetId;
-        let elementsList = GestureDetector._getAllElementsInArgument([...targetElement], targetAllChildren);
+        /**デフォルト値 */
+        let optionDefault = {
+            deep: true,
+            overwrite: false,
+            parentGroup: undefined
+        }
 
-        //idの重複チェック
-        elementsList.forEach(element => {
-            let dataset_gesdetId = element.dataset["gesdetId"];
-            if(dataset_gesdetId !== undefined && dataset_gesdetId != "" && dataset_gesdetId != id){
-                throw new Error("You can't add any grouped elements into the new group!");
+        Object.keys(optionDefault).forEach(key => {
+            if(!isset(option[key])){
+                //未設定の場合はデフォルト値を設定
+                option[key] = optionDefault[key];
             }
         });
 
-        //id登録
-        elementsList.forEach(element => {
-            element.dataset["gesdetId"] = id;
+        //親グループを設定
+        this.parentGroup = option.parentGroup;
+
+        if(!isset(this.gesdetId)){
+            //gesdetIdが未設定の場合は設定する
+            this.gesdetId = GestureDetector._genID();
+        }
+
+        //設定していく
+        GestureDetector._getAllElementsInArgument(targetElement, option.deep).forEach(element => {
+            if(isset(element.dataset["gesdetId"]) && GestureDetector.getgesdetGroup(element.dataset["gesdetId"]).length > 0 && !option.overwrite){
+                //gesdetIdが既に定義済み
+                throw new Error("`data-gesdet-id` is already defined!");
+            }
+            else{
+                //gesdetId未定義若しくは強制上書きモードの時はgesdetIdを設定
+                element.dataset["gesdetId"] = this.gesdetId;
+            }
         });
 
         return;
@@ -424,7 +486,7 @@ class GestureDetector{
 
     /**
      * @description グループから要素を削除 || Remove element(s) from the group
-     * @param {...(Element|Any[]|NodeList|HTMLCollection)} targetElement 対象の要素 || Target element(s)
+     * @param {...(HTMLElement|Array.<HTMLElement>|Any[]|NodeList|HTMLCollection)} targetElement 対象の要素 || Target element(s)
      */
     removeElement(targetAllChildren, ...targetElement){
         targetElement = GestureDetector._getAllElementsInArgument([...targetElement], targetAllChildren);
@@ -438,12 +500,24 @@ class GestureDetector{
 
     /**
      * @description 関数をグループに追加 || add function into the group
-     * @param {...Function} callback 関数 || function(s)
+     * @param {...(event: (MouseEvent|TouchEvent), gesEvent: GestureEvent)} callback 関数 || function(s)
      */
     addFunction(...callback){
         [...callback].forEach(func => {
             GestureDetector._callbackList[this.gesdetId].push(func);
         });
+    }
+
+    /**
+     * @description `addEventListener`みたいなやつ
+     * @description like `addEventListener`
+     * @param {("move"|"mousemove"|"touchmove"|"pinch"|"pinchin"|"pinchout"|"single"|"singleclick"|"singletap"|"double"|"doubleclick"|"doubletap")} type 
+     * @param {...(event: (MouseEvent|TouchEvent), gesEvent: GestureDetector)} callback 
+     */
+    addGestureListener(type, callback){
+        
+
+        return;
     }
 
     /**

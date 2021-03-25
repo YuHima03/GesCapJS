@@ -113,6 +113,18 @@ class GestureDetectorData{
 
         /**@type {MovementDirection} */
         this.direction = undefined;
+
+        /**
+         * @description `primary`: 主ボタン(一般的には左ボタン), `secondary`: 副ボタン(一般的には右ボタン), `auxiliary`: 補助ボタン(一般的にはホイール/中央のボタン), `fourth`: 第4ボタン, `fifth`: 第5ボタン
+         * @type {{primary: boolean, secondary: boolean, auxiliary: boolean, fourth: boolean, fifth: boolean}}
+         */
+        this.mouseButtons = {
+            primary     :   false,
+            secondary   :   false,
+            auxiliary   :   false,
+            fourth      :   false,
+            fifth       :   false
+        }
     }
 }
 
@@ -214,22 +226,24 @@ class GestureDetector{
      * @param {MovementEvent} ev 
      */
     static end(ev){
-        let data = GestureDetector._data;
+        if(isset(GestureDetector._data)){
+            let data = GestureDetector._data;
 
-        //終了フラグをつけてmiddleをもう一度呼び出し
-        GestureDetector.middle(ev, true);
+            //終了フラグをつけてmiddleをもう一度呼び出し
+            GestureDetector.middle(ev, true);
 
-        console.log(data.gestureType);
+            console.log(data.gestureType);
 
-        //lastDataを設定
-        GestureDetector._lastData = data;
+            //lastDataを設定
+            GestureDetector._lastData = data;
 
-        if(ev.type.match(/mouse|touch/)[0] === data.inputType){
-            //動作中のイベントリスナーを削除
-            document.removeEventListener(data.inputType + "move", GestureDetector.middle);
+            if(ev.type.match(/mouse|touch/)[0] === data.inputType){
+                //動作中のイベントリスナーを削除
+                document.removeEventListener(data.inputType + "move", GestureDetector.middle);
 
-            //情報のリセット
-            GestureDetector._data = undefined;
+                //情報のリセット
+                GestureDetector._data = undefined;
+            }
         }
 
         return;
@@ -333,7 +347,16 @@ class GestureDetector{
 
             if(data.inputType === "mouse"){
                 //ボタン判定
-                let button = ev.button;
+                /**@type {number} */
+                let buttons = ev.buttons;
+
+                data.mouseButtons = {
+                    primary     :   ((buttons & 1) === 1),
+                    secondary   :   ((buttons & 2) === 2),
+                    auxiliary   :   ((buttons & 4) === 4),
+                    fourth      :   ((buttons & 8) === 8),
+                    fifth       :   ((buttons & 16) === 16)
+                }
             }
         }
 

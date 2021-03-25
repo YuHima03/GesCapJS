@@ -330,6 +330,11 @@ class GestureDetector{
                     }
                 }
             }
+
+            if(data.inputType === "mouse"){
+                //ボタン判定
+                let button = ev.button;
+            }
         }
 
         if(endOfMovement && data.inputType === "touch"){

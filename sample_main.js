@@ -13,3 +13,6 @@ let sideMenu_GestureDetector = new GestureDetector(document.getElementById("side
     overwrite: true,
     parentGroup: body_GestureDetector
 });
+sideMenu_GestureDetector.addFunction((ev, gesEvent) => {
+    console.log(gesEvent);
+});

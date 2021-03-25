@@ -103,7 +103,7 @@ class GestureDetectorData{
         /**@type {MovementEvent} */
         this.initEvent = ev;
         /**@type {MovementEvent} */
-        this.lastEvent = undefined;
+        this.lastEvent = ev;
 
         /**@type {{x: !number, y: !number}} */
         this.displacement = {
@@ -219,6 +219,11 @@ class GestureDetector{
         //終了フラグをつけてmiddleをもう一度呼び出し
         GestureDetector.middle(ev, true);
 
+        console.log(data.gestureType);
+
+        //lastDataを設定
+        GestureDetector._lastData = data;
+
         if(ev.type.match(/mouse|touch/)[0] === data.inputType){
             //動作中のイベントリスナーを削除
             document.removeEventListener(data.inputType + "move", GestureDetector.middle);
@@ -252,11 +257,19 @@ class GestureDetector{
         if(data.inputType === "touch" && [...ev.touches].length === 2){
             //2本指タッチ
         }
-        else if(data.inputType === "mouse" || (data.inputType === "touch" && [...ev.touches].length === 1)){
+        else if(data.inputType === "mouse" || (data.inputType === "touch" && ev.touches.length === 1) || endOfMovement){
             //マウスor1本指タッチ
-            if(endOfMovement && !data.direction){
-                //クリックorタップ
-                data.gestureType = "single" + ((data.inputType === "mouse") ? "click" : "tap");
+            if(endOfMovement && !isset(data.direction)){
+                let lastData = GestureDetector._lastData;
+                if(isset(lastData) && isset(lastData.gestureType.match(/^single/)) && (ev.timeStamp - lastData.lastEvent.timeStamp) <= 350){
+                    //判断基準：ひとつ前にsingle~イベントがあり、そのイベントから350ms以内であるとき
+                    //ダブルクリックorダブルタップ
+                    data.gestureType = "double" + ((data.inputType === "mouse") ? "click" : "tap");
+                }
+                else{
+                    //クリックorタップ
+                    data.gestureType = "single" + ((data.inputType === "mouse") ? "click" : "tap");
+                }
             }
             else{
                 //ドラッグorスワイプとか
@@ -273,8 +286,16 @@ class GestureDetector{
 
                         break;
                     case("touch"):
-                        pos.x = ev.touches[0].clientX;
-                        pos.y = ev.touches[0].clientY;
+                        if(endOfMovement){
+                            //動作の最後の時はchangedTouchesから取得
+                            pos.x = ev.changedTouches[0].clientX;
+                            pos.y = ev.changedTouches[0].clientY;
+                        }
+                        else{
+                            //通常時
+                            pos.x = ev.touches[0].clientX;
+                            pos.y = ev.touches[0].clientY;
+                        }
 
                         init_pos.x = init.touches[0].clientX;
                         init_pos.y = init.touches[0].clientY;
@@ -311,7 +332,13 @@ class GestureDetector{
             }
         }
 
-        if(endOfMovement) console.info(data.gestureType);
+        if(endOfMovement && data.inputType === "touch"){
+            //touchendの後にmouseイベントが発火するのを防止
+            ev.preventDefault();
+        }
+
+        //lastEventを設定
+        data.lastEvent = ev;
         
         return;
     }

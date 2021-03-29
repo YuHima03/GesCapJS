@@ -9,10 +9,20 @@ let mainBlock = document.getElementById("main");
 let body_GestureDetector = new GestureDetector(document.body);
 
 /**サイドメニュー */
-let sideMenu_GestureDetector = new GestureDetector(document.getElementById("sideMenu"), {
+/*let sideMenu_GestureDetector = new GestureDetector(document.getElementById("sideMenu"), {
     overwrite: true,
     parentGroup: body_GestureDetector
+});*/
+
+let main_GestureDetector = new GestureDetector(document.getElementById("main"), {
+    overwrite   :   true,
+    parentGroup :   body_GestureDetector
 });
-sideMenu_GestureDetector.addFunction((ev, gesEvent) => {
-    console.log(gesEvent);
+
+body_GestureDetector.addGestureListener("all", (ev, gesEvent) => {
+    console.log(gesEvent.gestureType, "BODY");
+});
+
+main_GestureDetector.addGestureListener("all", (ev, gesEvent) => {
+    console.log(gesEvent.gestureType, "MAIN");
 });

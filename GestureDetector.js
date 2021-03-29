@@ -39,49 +39,58 @@
  * @classdesc Gesture information (it will be give to functions as an argument)
  */
 class GestureEvent{
-    /**@param {Object.<GestureEvent>} Obj */
-    constructor(Obj){
+    /**@param {GestureDetectorData} data */
+    constructor(data){
         /**
          * @description ターゲットの要素の`GesdetID` || target element's `GesdetID`
-         * @type {string[10]}
          */
-        this.gesdetId = Obj.gesdetId;
+        this.gesdetId = data.gesdetId;
+        /**
+         * @description ジェスチャーの種類 || type of gesture
+         */
+        this.gestureType = data.gestureType;
         /**
          * @description 入力の種類 || type of input
-         * @type {MovementType}
          */
-        this.inputType = Obj.inputType;
+        this.inputType = data.inputType;
+    }
+}
+
+/**
+ * @class
+ * @classdesc `GestureEvent`の中の`MouseMove`若しくは`TouchMove`
+ * @classdesc `MouseMove` or `TouchMove` in `GestureEvent`
+ */
+class gdMoveEvent extends GestureEvent{
+    /**@param {GestureDetectorData} data */
+    constructor(data){
+        super(data);
+
         /**
          * @description 動きの方向 || direction of the movement
-         * @type {MovementDirection}
          */
-        this.direction = Obj.direction;
+        this.direction = data.direction;
         /**
-         * @description X方向への変位 || X displacement
-         * @type {!number}
+         * @description X方向、Y方向への変位 || X and Y displacement
          */
-        this.movement_x = Obj.movement_x;
-        /**
-         * @description Y方向への変位 || Y displacement
-         * @type {!number}
-         */
-        this.movement_y = Obj.movement_y;
-        /**
-         * @description 動きの速度 || speed of movement
-         * @type {{speed: !number, x: !number, y: !number}}
-         */
-        this.speed = Obj.speed;
-        /**
-         * @description 動きの始まりかどうか || whether it is just start of the movement
-         * @type {boolean}
-         */
-        this.startOfMovement = Obj.startOfMovement;
-        /**
-         * @description 動きの終わりかどうか || whether it is just end of the movement
-         * @type {boolean}
-         */
-        this.endOfMovement = Obj.endOfMovement;
+        this.displacement = data.displacement;
     }
+}
+
+/**
+ * @class
+ * @classdesc `GestureEvent`の中の`singleclick`若しくは`singletap`
+ * @classdesc `singleclick` or `singletap` in `GestureEvent`
+ */
+class gdSingleEvent extends GestureEvent{
+    /**@param {GestureDetector} data */
+    constructor(data){
+        super(data);
+    }
+}
+
+class gdPinchEvent extends GestureEvent{
+
 }
 
 /**
@@ -95,7 +104,7 @@ class GestureDetectorData{
         /**@type {string} */
         this.gesdetId = ev.target.dataset["gesdetId"];
 
-        /** @type {("mousemove"|"touchmove"|"pinchin"|"oinchout"|"singleclick"|"singletap"|"doubleclick"|"doubletap")}*/
+        /** @type {("mousemove"|"touchmove"|"pinchin"|"pinchout"|"single"|"click"|"tap"|"double"|"doubleclick"|"doubletap")}*/
         this.gestureType = undefined;
         /**@type {("mouse"|"touch")} */
         this.inputType = ev.type.match(/mouse|touch/)[0];
@@ -126,6 +135,10 @@ class GestureDetectorData{
             fifth       :   false
         }
     }
+
+    getGestureEvent(){
+        return new GestureEvent(this);
+    }
 }
 
 /**
@@ -135,12 +148,6 @@ class GestureDetectorData{
 class GestureDetector{
     //////////////////////////////////////////////
     // 以下静的メソッド
-
-    /**
-     * コールバックの紐づけ
-     * @type {Object.<string, Array.<Function>>>}
-     */
-    static _callbackList =  {};
 
     /**
      * データ
@@ -156,20 +163,21 @@ class GestureDetector{
 
     /**
      * GestureListenerで設定されたコールバックのリスト(addFunctionで設定されたものも追加される)
-     * @type {Object.<string, ({
+     * @type {Object.<string, {
      * all: Array.<GestureDetectorFunction>,
      * move: Array.<GestureDetectorFunction> ,mousemove: Array.<GestureDetectorFunction>, touchmove: Array.<GestureDetectorFunction>,
      * pinch: Array.<GestureDetectorFunction>, pinchin: Array.<GestureDetectorFunction>, pinchout: Array.<GestureDetectorFunction>,
-     * single: Array.<GestureDetectorFunction>, singleclick: Array.<GestureDetectorFunction>, singletap: Array.<GestureDetectorFunction>,
+     * single: Array.<GestureDetectorFunction>, click: Array.<GestureDetectorFunction>, tap: Array.<GestureDetectorFunction>,
      * double: Array.<GestureDetectorFunction>, doubleclick: Array.<GestureDetectorFunction>, doubletap: Array.<GestureDetectorFunction>
-     * }|Object.<string, Array<GestureDetectorFunction>>)>}
+     * }>}
      */
     static _listenerCallbackList = {
         /**
          * 新しいGestureDetectorオブジェクトが作成されたときに使うやつ
          * @param {string} gesdetId 
+         * @param {GestureDetector} parentGroup
          */
-        _create: (gesdetId) => {
+        _create: (gesdetId, parentGroup = null) => {
             GestureDetector._listenerCallbackList[gesdetId] = {
                 all         :   [],
                 move        :   [],
@@ -179,11 +187,26 @@ class GestureDetector{
                 pinchin     :   [],
                 pinchout    :   [],
                 single      :   [],
-                singleclick :   [],
-                singletap   :   [],
+                click       :   [],
+                tap         :   [],
                 double      :   [],
                 doubleclick :   [],
                 doubletap   :   []
+            }
+
+            if(isset(parentGroup)){
+                //親グループが設定されている場合は親グループにイベントを伝播させるように関数を設定する
+                let callbackList = GestureDetector._listenerCallbackList[gesdetId];
+                let parentGesdetId = parentGroup.gesdetId;
+                
+                Object.keys(callbackList).forEach(key => {
+                    callbackList[key].push((ev, gesEvent) => {
+                        //親グループの関数を実行させる
+                        GestureDetector._listenerCallbackList[parentGesdetId][key].forEach(func => {
+                            func(ev, gesEvent);
+                        });
+                    });
+                });
             }
         }
     }
@@ -203,6 +226,52 @@ class GestureDetector{
         }while(document.querySelector(`*[data-gesdet-id="${result}"]`) !== null);
 
         return result;
+    }
+
+    /**
+     * リスナーに指定された関数の実行
+     * @param {MovementEvent} ev
+     */
+    static executeListenerCallback(ev){
+        let data = GestureDetector._data;
+
+        if(isset(data.gesdetId)){
+            let allCallback = GestureDetector._listenerCallbackList[data.gesdetId];
+
+            /**@type {Array.<GestureDetectorFunction>} */
+            let callbackList = [...allCallback.all, ...allCallback[data.gestureType]];
+
+            /**@type {Object.<string, Array.<string>>} */
+            let evName = {
+                mousemove   :   ["move"],
+                touchmove   :   ["move"],
+                pinchin     :   ["pinch"],
+                pinchout    :   ["pinch"],
+                click       :   ["single"],
+                tap         :   ["single"],
+                doubleclick :   ["double", "click", "single"],
+                doubletap   :   ["double", "tap", "single"]
+            }
+
+            evName[data.gestureType].forEach(str => {
+                callbackList.push(...allCallback[str]);
+            });
+            
+            callbackList.forEach(func => {
+                new Promise((resolve, reject) => {
+                    try{
+                        //コールバックを実行(非同期)
+                        func(ev, data.getGestureEvent());
+                        resolve();
+                    }
+                    catch(err){
+                        reject(err.message);
+                    }
+                });
+            });
+        }
+
+        return;
     }
     
     /**
@@ -275,15 +344,20 @@ class GestureDetector{
             //マウスor1本指タッチ
             if(endOfMovement && !isset(data.direction)){
                 let lastData = GestureDetector._lastData;
-                if(isset(lastData) && isset(lastData.gestureType.match(/^single/)) && (ev.timeStamp - lastData.lastEvent.timeStamp) <= 350){
+                /**@type {("click"|"tap")} */
+                let type = ((data.inputType === "mouse") ? "click" : "tap");
+
+                if(isset(lastData) && isset(lastData.gestureType.match(/^(click|tap)$/)) && (ev.timeStamp - lastData.lastEvent.timeStamp) <= 350){
                     //判断基準：ひとつ前にsingle~イベントがあり、そのイベントから350ms以内であるとき
                     //ダブルクリックorダブルタップ
-                    data.gestureType = "double" + ((data.inputType === "mouse") ? "click" : "tap");
+                    data.gestureType = "double" + type;
                 }
                 else{
                     //クリックorタップ
-                    data.gestureType = "single" + ((data.inputType === "mouse") ? "click" : "tap");
+                    data.gestureType = type;
                 }
+
+                GestureDetector.executeListenerCallback(ev);
             }
             else{
                 //ドラッグorスワイプとか
@@ -459,9 +533,10 @@ class GestureDetector{
         this.gesdetId = undefined;
 
         this.addElement(targetElement, option);
-        GestureDetector._callbackList[this.gesdetId] = [];
 
-        GestureDetector._listenerCallbackList._create(this.gesdetId);
+        let parentGroup = (isset(option) && option.parentGroup instanceof GestureDetector) ? this.parentGroup : undefined;
+
+        GestureDetector._listenerCallbackList._create(this.gesdetId, parentGroup);
 
         return;
     }
@@ -496,8 +571,7 @@ class GestureDetector{
         /**デフォルト値 */
         let optionDefault = {
             deep: true,
-            overwrite: false,
-            parentGroup: undefined
+            overwrite: false
         }
 
         Object.keys(optionDefault).forEach(key => {
@@ -557,10 +631,11 @@ class GestureDetector{
     /**
      * @description `addEventListener`みたいなやつ
      * @description like `addEventListener`
-     * @param {("all"|"move"|"mousemove"|"touchmove"|"pinch"|"pinchin"|"pinchout"|"single"|"singleclick"|"singletap"|"double"|"doubleclick"|"doubletap")} type 
+     * @param {("all"|"move"|"mousemove"|"touchmove"|"pinch"|"pinchin"|"pinchout"|"single"|"click"|"tap"|"double"|"doubleclick"|"doubletap")} type 
      * @param {GestureDetectorFunction} callback 
+     * @param {Object.<string, !boolean>} option
      */
-    addGestureListener(type, callback){
+    addGestureListener(type, callback, option = {}){
         if(isset(GestureDetector._listenerCallbackList[this.gesdetId][type])){
             GestureDetector._listenerCallbackList[this.gesdetId][type].push(callback);
         }
@@ -597,12 +672,14 @@ class GestureDetector{
     }
 }
 
-//start of movement
-["mousedown", "touchstart"].forEach(value => {
-    document.addEventListener(value, GestureDetector.start, {capture: false});
-});
+window.addEventListener('load', () => {
+    //start of movement
+    ["mousedown", "touchstart"].forEach(value => {
+        document.addEventListener(value, GestureDetector.start, {capture: false});
+    });
 
-//end of movement
-["mouseup", "touchend"].forEach(value => {
-    document.addEventListener(value, GestureDetector.end, {capture: false});
+    //end of movement
+    ["mouseup", "touchend"].forEach(value => {
+        document.addEventListener(value, GestureDetector.end, {capture: false});
+    });
 });

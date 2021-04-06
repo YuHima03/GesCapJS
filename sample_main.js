@@ -19,10 +19,8 @@ let main_GestureDetector = new GestureDetector(document.getElementById("main"), 
     parentGroup :   body_GestureDetector
 });
 
-body_GestureDetector.addGestureListener("all", (ev, gesEvent) => {
-    console.log(gesEvent.gestureType, "BODY");
-});
-
-main_GestureDetector.addGestureListener("all", (ev, gesEvent) => {
-    console.log(gesEvent.gestureType, "MAIN");
-});
+body_GestureDetector.addGestureListener("move", (ev, gesEvent) => {
+    if(gesEvent.mouseButtons.primary){
+        console.log("主ボタン", gesEvent.direction);
+    }
+})

@@ -30,7 +30,7 @@
  */
 /**
  * @typedef GestureDetectorFunction
- * @type {(ev: (MouseEvent|TouchEvent), gesEvent: GestureEvent)}
+ * @type {(ev: (MouseEvent|TouchEvent), gesEvent: (GestureEvent|gdMoveEvent|gdPinchEvent|gdSingleEvent))}
  */
 
 /**
@@ -53,6 +53,22 @@ class GestureEvent{
          * @description 入力の種類 || type of input
          */
         this.inputType = data.inputType;
+        /**
+         * @description `stopMovement`関数の実行の可否 || weather `stopMovement` function can be called
+         */
+        this.enableStopMovement = data.enableStopMovement;
+    }
+
+    /**
+     * @description 一連の移動イベントを中止する || stop movement event
+     */
+    stopMovement(){
+        if(this.enableStopMovement){
+            let endEvent = (this.inputType === "mouse") ? "mouseup" : "touchend";
+            document.dispatchEvent(new Event(endEvent));
+        }
+
+        return;
     }
 }
 
@@ -74,6 +90,14 @@ class gdMoveEvent extends GestureEvent{
          * @description X方向、Y方向への変位 || X and Y displacement
          */
         this.displacement = data.displacement;
+        /**
+         * @description 動きの速度 || speed of movement
+         */
+        this.speed = data.speed;
+        /**
+         * @description `primary`: 主ボタン(一般的には左ボタン), `secondary`: 副ボタン(一般的には右ボタン), `auxiliary`: 補助ボタン(一般的にはホイール/中央のボタン), `fourth`: 第4ボタン, `fifth`: 第5ボタン
+         */
+        this.mouseButtons = data.mouseButtons;
     }
 }
 
@@ -83,14 +107,17 @@ class gdMoveEvent extends GestureEvent{
  * @classdesc `singleclick` or `singletap` in `GestureEvent`
  */
 class gdSingleEvent extends GestureEvent{
-    /**@param {GestureDetector} data */
+    /**@param {GestureDetectorData} data */
     constructor(data){
         super(data);
     }
 }
 
 class gdPinchEvent extends GestureEvent{
-
+    /**@param {GestureDetectorData} data */
+    constructor(data){
+        super(data);
+    }
 }
 
 /**
@@ -104,7 +131,7 @@ class GestureDetectorData{
         /**@type {string} */
         this.gesdetId = ev.target.dataset["gesdetId"];
 
-        /** @type {("mousemove"|"touchmove"|"pinchin"|"pinchout"|"single"|"click"|"tap"|"double"|"doubleclick"|"doubletap")}*/
+        /** @type {("mousemove"|"touchmove"|"pinch"|"single"|"click"|"tap"|"double"|"doubleclick"|"doubletap")}*/
         this.gestureType = undefined;
         /**@type {("mouse"|"touch")} */
         this.inputType = ev.type.match(/mouse|touch/)[0];
@@ -123,10 +150,14 @@ class GestureDetectorData{
         /**@type {MovementDirection} */
         this.direction = undefined;
 
-        /**
-         * @description `primary`: 主ボタン(一般的には左ボタン), `secondary`: 副ボタン(一般的には右ボタン), `auxiliary`: 補助ボタン(一般的にはホイール/中央のボタン), `fourth`: 第4ボタン, `fifth`: 第5ボタン
-         * @type {{primary: boolean, secondary: boolean, auxiliary: boolean, fourth: boolean, fifth: boolean}}
-         */
+        /**@type {{speed: !number, x: !number, y: !number}} */
+        this.speed = {
+            speed   :   0,
+            x       :   0,
+            y       :   0
+        }
+
+        /**@type {{primary: boolean, secondary: boolean, auxiliary: boolean, fourth: boolean, fifth: boolean}} */
         this.mouseButtons = {
             primary     :   false,
             secondary   :   false,
@@ -134,10 +165,34 @@ class GestureDetectorData{
             fourth      :   false,
             fifth       :   false
         }
+
+        /**@description `stopMovement` 関数の実行の可否 */
+        this.enableStopMovement = true;
+
+        /**@type {("mousemove"|"touchmove"|"pinch"|"single"|"click"|"tap"|"double"|"doubleclick"|"doubletap")} */
+        this.lastGestureType = undefined;
     }
 
     getGestureEvent(){
-        return new GestureEvent(this);
+        switch(this.gestureType){
+            case("mousemove"):
+            case("touchmove"):
+                return new gdMoveEvent(this);
+
+            case("pinch"):
+                return new gdPinchEvent(this);
+
+            default:
+                return new GestureEvent(this);
+        }
+    }
+
+    /**@param {MovementEvent} ev */
+    setLastEvData(ev){
+        this.lastGestureType = this.gestureType;
+        this.lastEvent = ev;
+
+        return;
     }
 }
 
@@ -166,7 +221,7 @@ class GestureDetector{
      * @type {Object.<string, {
      * all: Array.<GestureDetectorFunction>,
      * move: Array.<GestureDetectorFunction> ,mousemove: Array.<GestureDetectorFunction>, touchmove: Array.<GestureDetectorFunction>,
-     * pinch: Array.<GestureDetectorFunction>, pinchin: Array.<GestureDetectorFunction>, pinchout: Array.<GestureDetectorFunction>,
+     * pinch: Array.<GestureDetectorFunction>,
      * single: Array.<GestureDetectorFunction>, click: Array.<GestureDetectorFunction>, tap: Array.<GestureDetectorFunction>,
      * double: Array.<GestureDetectorFunction>, doubleclick: Array.<GestureDetectorFunction>, doubletap: Array.<GestureDetectorFunction>
      * }>}
@@ -245,8 +300,7 @@ class GestureDetector{
             let evName = {
                 mousemove   :   ["move"],
                 touchmove   :   ["move"],
-                pinchin     :   ["pinch"],
-                pinchout    :   ["pinch"],
+                pinch       :   [],
                 click       :   ["single"],
                 tap         :   ["single"],
                 doubleclick :   ["double", "click", "single"],
@@ -279,13 +333,15 @@ class GestureDetector{
      * @param {MovementEvent} ev 
      */
     static start(ev){
-        GestureDetector._data = new GestureDetectorData(ev);
-        let data = GestureDetector._data;
+        if(!isset(GestureDetector._data)){
+            GestureDetector._data = new GestureDetectorData(ev);
+            let data = GestureDetector._data;
 
-        //動作中のイベントリスナーを追加
-        document.addEventListener(data.inputType + "move", GestureDetector.middle);
+            //動作中のイベントリスナーを追加
+            document.addEventListener(data.inputType + "move", GestureDetector.middle);
 
-        console.log(ev);
+            console.log("Start of Movement");
+        }
 
         return;
     }
@@ -298,20 +354,22 @@ class GestureDetector{
         if(isset(GestureDetector._data)){
             let data = GestureDetector._data;
 
-            //終了フラグをつけてmiddleをもう一度呼び出し
-            GestureDetector.middle(ev, true);
+            //終了フラグをつけてmiddleをもう一度呼び出し -> イベントリスナーの削除の是非を判断
+            if(GestureDetector.middle(ev, true)){
+                console.log(data.gestureType);
 
-            console.log(data.gestureType);
+                //lastDataを設定
+                GestureDetector._lastData = data;
 
-            //lastDataを設定
-            GestureDetector._lastData = data;
+                if(ev.type.match(/mouse|touch/)[0] === data.inputType){
+                    //動作中のイベントリスナーを削除
+                    document.removeEventListener(data.inputType + "move", GestureDetector.middle);
 
-            if(ev.type.match(/mouse|touch/)[0] === data.inputType){
-                //動作中のイベントリスナーを削除
-                document.removeEventListener(data.inputType + "move", GestureDetector.middle);
+                    //情報のリセット
+                    GestureDetector._data = undefined;
+                }
 
-                //情報のリセット
-                GestureDetector._data = undefined;
+                console.log("End of Movement");
             }
         }
 
@@ -323,9 +381,12 @@ class GestureDetector{
      * @param {MovementEvent} ev 
      */
     static middle(ev, endOfMovement = false){
-        let data = GestureDetector._data;
-        let init = data.initEvent;
+        /**戻り値 */
+        let returnValue = true;
 
+        let data = GestureDetector._data;
+        /**初期イベント */
+        let init = data.initEvent;
         /**
          * 現在位置
          * @type {{x: !number, y: !number}}
@@ -337,10 +398,55 @@ class GestureDetector{
          */
         let init_pos = {}
 
-        if(data.inputType === "touch" && [...ev.touches].length === 2){
-            //2本指タッチ
+        if(/^(mouseup|touchend)$/.test(ev.type)){
+            data.enableStopMovement = false;
+        }
+
+        /**@type {Array.<Touch>} */
+        let touches = [];
+        if(data.inputType === "touch"){
+            [...ev.touches].forEach(
+                /**@param {Touch} touchInfo */
+                (touchInfo) => {
+                    touches[touchInfo.identifier] = touchInfo;
+                }
+            );
+
+            [...ev.changedTouches].forEach(
+                /**@param {Touch} touchInfo */
+                (touchInfo) => {
+                    touches[touchInfo.identifier] = touchInfo;
+                }
+            );
+
+            //空要素を詰める
+            touches = touches.filter(v => v);
+        }
+
+        if(data.inputType === "touch" && touches.length > 1 ){
+            //ピンチ操作
+            data.gestureType = "pinch";
+
+            let touchPos = {x: 0, y: 0};
+            touches.forEach(
+                /**@param {Touch} touchInfo */
+                (touchInfo) => {
+                    touchPos.x += touchInfo.clientX;
+                    touchPos.y += touchInfo.clientY;
+            });
+
+            //それぞれの座標の真ん中を移動基準の座標にとる
+            pos.x = touchPos.x / touches.length;
+            pos.y = touchPos.y / touches.length;
+
+            console.log("ピンチ");
+
+            if(endOfMovement && ev.touches.length > 0){
+                returnValue = false;
+            }
         }
         else if(data.inputType === "mouse" || (data.inputType === "touch" && ev.touches.length === 1) || endOfMovement){
+
             //マウスor1本指タッチ
             if(endOfMovement && !isset(data.direction)){
                 let lastData = GestureDetector._lastData;
@@ -357,6 +463,7 @@ class GestureDetector{
                     data.gestureType = type;
                 }
 
+                //コールバックの実行
                 GestureDetector.executeListenerCallback(ev);
             }
             else{
@@ -395,8 +502,20 @@ class GestureDetector{
                 data.displacement.x = pos.x - init_pos.x;
                 data.displacement.y = pos.y - init_pos.y;
 
-                //動きの方向の検出
-                if(!data.direction){
+                //速度の算出
+                let timeLength = ev.timeStamp - data.lastEvent.timeStamp;
+                data.speed = {
+                    speed   :   0,
+                    x       :   0,
+                    y       :   0
+                }
+
+                if(isset(data.direction)){
+                    //方向決定後
+                    GestureDetector.executeListenerCallback(ev);
+                }
+                else{
+                    //動きの方向の検出
                     //変位の境界
                     let boundary = 5;
 
@@ -420,7 +539,7 @@ class GestureDetector{
             }
 
             if(data.inputType === "mouse"){
-                //ボタン判定
+                //マウスのボタン判定
                 /**@type {number} */
                 let buttons = ev.buttons;
 
@@ -439,10 +558,10 @@ class GestureDetector{
             ev.preventDefault();
         }
 
-        //lastEventを設定
-        data.lastEvent = ev;
+        //lastEventの設定等
+        data.setLastEvData(ev);
         
-        return;
+        return returnValue;
     }
 
     /**

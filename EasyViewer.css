@@ -1,0 +1,54 @@
+div#easyViewer {
+    display: block;
+    visibility: hidden;
+
+    position: fixed;
+    z-index: 5;
+    top: 0;
+    left: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    margin: 0;
+    background-color: transparent;
+}
+
+    div#easyViewer.show {
+        visibility: visible;
+    }
+
+div#easyViewer-layer {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background-color: rgba(0, 0, 0, 0.5);
+
+    opacity: 0;
+
+    transition: 200ms ease-out opacity;
+}
+
+    div#easyViewer-layer.show {
+        opacity: 1;
+    }
+
+div#easyViewer-imgWrap {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 0;
+
+    width: auto;
+    height: auto;
+}
+
+    div#easyViewer-imgWrap > img {
+        width: 100%;
+        height: 100%;
+    }

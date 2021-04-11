@@ -9,11 +9,14 @@
     <meta http-equiv="Cache-Control" content="no-cache">
     <!---->
     <title>Gestures.js</title>
-    <script src="./GestureDetector.js"></script>
     <script src="../Calender4Students/js/main.js"></script>
+    <script src="./GestureDetector.js"></script>
+    <script src="./EasyViewer.js"></script>
     <link rel="stylesheet" href="./style.css" type="text/css" />
+    <link rel="stylesheet" href="./EasyViewer.css" type="text/css" />
 </head>
 <body>
+    <linkto-def data-name="gesdetJS_github" data-linkto="https://github.com/YuHima03/GestureDetectorJS"></linkto-def>
     <header id="header">
         <div>
             <!--スライドダウンして出すメニュー-->
@@ -24,22 +27,36 @@
             </div>
             <!--タイトル-->
             <div id="title">
-                <h1>Gesture Detector JS</h1>
+                <h1>スマホアプリみたいな操作感を目指すサイト</h1>
             </div>
         </div>
     </header>
     <div id="sideMenu"></div>
     <main id="main">
-        <div style="display: inline-block;">
-            <h2>ようこそ</h2>
+        <div class="content">
+            <div class="section">
+                <div class="content">
+                    <div>
+                        <h2>GestureDetector.jsのテストページへようこそ</h2>
+                        <p>このページでは、<span><a data-linkto="gesdetJS_github" target="_blank">GestureDetector.js</a></span>を利用してブラウザ上でスマホのような操作を実装しています<span class="small">(開発者自身がAndroidしか持ってないので動作はだいぶAndroid寄りです...w)</span></p>
+                        <p>ほかにも実験的な機能をいろいろ追加してるので楽しんでいただければ幸いです</p>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="content">
+                    <div>
+                        <h2>画像表示のサンプル</h2>
+                        <p>以下の画像をクリックすると拡大表示されます</p>
+                        <div class="image viewerTarget">
+                            <img src="./smartphone.jpg" />
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
     <div id="layer" data-default-opacity='0.5'></div>
     <script src="./sample_main.js"></script>
-    <script>
-        document.addEventListener("selectstart", ev => {
-            ev.preventDefault();
-        });
-    </script>
 </body>
 </html>

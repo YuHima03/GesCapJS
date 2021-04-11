@@ -57,6 +57,14 @@ class GestureEvent{
          * @description `stopMovement`関数の実行の可否 || weather `stopMovement` function can be called
          */
         this.enableStopMovement = data.enableStopMovement;
+        /**
+         * @description 移動イベントの最初か否か || weather it is the start of movement
+         */
+        this.startOfMovement = data.startOfMovement;
+        /**
+         * @description 移動イベントの最後か否か || weather it is the end of movement
+         */
+        this.endOfMovement = data.endOfMovement;
     }
 
     /**
@@ -110,9 +118,17 @@ class gdSingleEvent extends GestureEvent{
     /**@param {GestureDetectorData} data */
     constructor(data){
         super(data);
+
+        delete this.startOfMovement;
+        delete this.endOfMovement;
     }
 }
 
+/**
+ * @class
+ * @classdesc `GestureEvent`の中の`pinch`
+ * @classdesc `pinch` in `GestureEvent`
+ */
 class gdPinchEvent extends GestureEvent{
     /**@param {GestureDetectorData} data */
     constructor(data){
@@ -128,10 +144,14 @@ class GestureDetectorData{
      * @param {MovementEvent} ev 
      */
     constructor(ev){
-        /**@type {string} */
-        this.gesdetId = ev.target.dataset["gesdetId"];
+        //////////////////////////////
+        //=== 全イベント共通
 
-        /** @type {("mousemove"|"touchmove"|"pinch"|"single"|"click"|"tap"|"double"|"doubleclick"|"doubletap")}*/
+        /**@type {string} */
+        this.gesdetId = ev.target.gestureDetectorIdentifier;
+        //this.gesdetId = ev.target.dataset["gesdetId"];
+
+        /** @type {("mousemove"|"touchmove"|"pinch"|"click"|"tap"|"double"|"doubleclick"|"doubletap")}*/
         this.gestureType = undefined;
         /**@type {("mouse"|"touch")} */
         this.inputType = ev.type.match(/mouse|touch/)[0];
@@ -139,7 +159,24 @@ class GestureDetectorData{
         /**@type {MovementEvent} */
         this.initEvent = ev;
         /**@type {MovementEvent} */
-        this.lastEvent = ev;
+        this.lastEvent = undefined;
+
+        /**@description `stopMovement` 関数の実行の可否 */
+        this.enableStopMovement = true;
+
+        /**@type {("mousemove"|"touchmove"|"pinch"|"click"|"tap"|"double"|"doubleclick"|"doubletap")} */
+        this.lastGestureType = undefined;
+
+        //////////////////////////////
+        //=== `gdSingleEvent` と `gdDoubleEvent` 以外
+
+        //いろいろなフラグ
+        this.startOfMovement = false;
+        this.middleOfMovement = false;
+        this.endOfMovement = false;
+
+        //////////////////////////////
+        //=== `gdMovementEvent`
 
         /**@type {{x: !number, y: !number}} */
         this.displacement = {
@@ -165,12 +202,6 @@ class GestureDetectorData{
             fourth      :   false,
             fifth       :   false
         }
-
-        /**@description `stopMovement` 関数の実行の可否 */
-        this.enableStopMovement = true;
-
-        /**@type {("mousemove"|"touchmove"|"pinch"|"single"|"click"|"tap"|"double"|"doubleclick"|"doubletap")} */
-        this.lastGestureType = undefined;
     }
 
     getGestureEvent(){
@@ -181,6 +212,12 @@ class GestureDetectorData{
 
             case("pinch"):
                 return new gdPinchEvent(this);
+
+            case("click"):
+            case("tap"):
+            case("doubleclick"):
+            case("doubletap"):
+                return new gdSingleEvent(this);
 
             default:
                 return new GestureEvent(this);
@@ -215,6 +252,9 @@ class GestureDetector{
      * @type {GestureDetectorData}
      */
     static _lastData = undefined;
+
+    /**`touchend`のフラグ -> clickの発生防止のため */
+    static touchendFlag = false;
 
     /**
      * GestureListenerで設定されたコールバックのリスト(addFunctionで設定されたものも追加される)
@@ -310,7 +350,11 @@ class GestureDetector{
             evName[data.gestureType].forEach(str => {
                 callbackList.push(...allCallback[str]);
             });
-            
+
+            //middleOfMovementを使ってstartOfMovementを判定
+            data.startOfMovement = !data.middleOfMovement;
+            if(!data.middleOfMovement)  data.middleOfMovement = true;
+
             callbackList.forEach(func => {
                 new Promise((resolve, reject) => {
                     try{
@@ -361,7 +405,7 @@ class GestureDetector{
                 //lastDataを設定
                 GestureDetector._lastData = data;
 
-                if(ev.type.match(/mouse|touch/)[0] === data.inputType){
+                if(/dragend|selectionend/.test(ev.type) || new RegExp(`${data.inputType}`).test(ev.type)){
                     //動作中のイベントリスナーを削除
                     document.removeEventListener(data.inputType + "move", GestureDetector.middle);
 
@@ -383,10 +427,13 @@ class GestureDetector{
     static middle(ev, endOfMovement = false){
         /**戻り値 */
         let returnValue = true;
+        /**callbackを呼び出すか否か */
+        let executeFlag = false;
 
+        //GestureDetectorDataに関するやつ
         let data = GestureDetector._data;
-        /**初期イベント */
         let init = data.initEvent;
+
         /**
          * 現在位置
          * @type {{x: !number, y: !number}}
@@ -398,11 +445,15 @@ class GestureDetector{
          */
         let init_pos = {}
 
+        //stopMovementの許可設定
         if(/^(mouseup|touchend)$/.test(ev.type)){
             data.enableStopMovement = false;
         }
 
-        /**@type {Array.<Touch>} */
+        /**
+         * `touches`と`changedTouches`のIDを使って纏める
+         * @type {Array.<Touch>} 
+         */
         let touches = [];
         if(data.inputType === "touch"){
             [...ev.touches].forEach(
@@ -439,8 +490,6 @@ class GestureDetector{
             pos.x = touchPos.x / touches.length;
             pos.y = touchPos.y / touches.length;
 
-            console.log("ピンチ");
-
             if(endOfMovement && ev.touches.length > 0){
                 returnValue = false;
             }
@@ -464,7 +513,7 @@ class GestureDetector{
                 }
 
                 //コールバックの実行
-                GestureDetector.executeListenerCallback(ev);
+                executeFlag = true;
             }
             else{
                 //ドラッグorスワイプとか
@@ -473,27 +522,27 @@ class GestureDetector{
                 switch(data.inputType){
                     //座標の情報を取得
                     case("mouse"):
-                        pos.x = ev.x;
-                        pos.y = ev.y;    
+                        pos.x = ev.pageX;
+                        pos.y = ev.pageY;    
 
-                        init_pos.x = init.x;
-                        init_pos.y = init.y;
+                        init_pos.x = init.pageX;
+                        init_pos.y = init.pageY;
 
                         break;
                     case("touch"):
                         if(endOfMovement){
                             //動作の最後の時はchangedTouchesから取得
-                            pos.x = ev.changedTouches[0].clientX;
-                            pos.y = ev.changedTouches[0].clientY;
+                            pos.x = ev.changedTouches[0].pageX;
+                            pos.y = ev.changedTouches[0].pageY;
                         }
                         else{
                             //通常時
-                            pos.x = ev.touches[0].clientX;
-                            pos.y = ev.touches[0].clientY;
+                            pos.x = ev.touches[0].pageX;
+                            pos.y = ev.touches[0].pageY;
                         }
 
-                        init_pos.x = init.touches[0].clientX;
-                        init_pos.y = init.touches[0].clientY;
+                        init_pos.x = init.touches[0].pageX;
+                        init_pos.y = init.touches[0].pageY;
 
                         break;
                 }
@@ -503,16 +552,16 @@ class GestureDetector{
                 data.displacement.y = pos.y - init_pos.y;
 
                 //速度の算出
-                let timeLength = ev.timeStamp - data.lastEvent.timeStamp;
-                data.speed = {
-                    speed   :   0,
-                    x       :   0,
-                    y       :   0
+                if(isset(data.lastEvent)){
+                    let timeLength = ev.timeStamp - data.lastEvent.timeStamp;
+                    data.speed.x = data.displacement.x / timeLength;
+                    data.speed.y = data.displacement.y / timeLength;
+                    data.speed.speed = Math.sqrt(Math.pow(data.speed.x, 2) + Math.pow(data.speed.y, 2));
                 }
 
                 if(isset(data.direction)){
                     //方向決定後
-                    GestureDetector.executeListenerCallback(ev);
+                    executeFlag = true;
                 }
                 else{
                     //動きの方向の検出
@@ -558,6 +607,14 @@ class GestureDetector{
             ev.preventDefault();
         }
 
+        //endOfMovement
+        data.endOfMovement = (returnValue && endOfMovement);
+
+        //callback呼び出し
+        if(executeFlag){
+            GestureDetector.executeListenerCallback(ev);
+        }
+
         //lastEventの設定等
         data.setLastEvData(ev);
         
@@ -601,9 +658,9 @@ class GestureDetector{
      */
     static _getAllElementsInArgument(targetElement, deep){
         let result = [];
-        let typeErrorText = "`targetElement` must be Element or Array (values must be Element) or HTMLCollection (you can get from getElementBy__) or NodeList (you can get from querySelector(All))";
+        let typeErrorText = "`targetElement` must be Element, Array (values must be Element or Document), Document, HTMLCollection (you can get from getElementBy__) or NodeList (you can get from querySelector(All))";
 
-        if(targetElement instanceof HTMLElement){
+        if(targetElement instanceof HTMLElement || targetElement instanceof Document){
             //要素だけの場合
             targetElement = [targetElement];
         }
@@ -616,7 +673,7 @@ class GestureDetector{
         }
 
         targetElement.forEach(value => {
-            if(value instanceof Element){
+            if(value instanceof Element || value instanceof Document){
                 if(deep){
                     result.push(value, ...getAllChildren(value));
                 }
@@ -674,7 +731,7 @@ class GestureDetector{
 
     /**
      * @description 要素をグループに追加 || Add element(s) into the group
-     * @param {(HTMLElement|Array.<HTMLElement>|Any[]|NodeList|HTMLCollection)} targetElement 対象の要素 || Target element(s)
+     * @param {(HTMLElement|Array.<HTMLElement>|Any[]|NodeList|HTMLCollection|Document|Array.<Document>)} targetElement 対象の要素 || Target element(s)
      * @param {GestureDetectorOption} option `deep`: 全ての子要素を対象に || target all children `overwrite`: 所属グループが既にあった場合でも上書き || overwrite belonging group even if it is already defined `parentGroup`: 親グループ || parent group
      */
     addElement(targetElement, option = null){
@@ -710,13 +767,13 @@ class GestureDetector{
 
         //設定していく
         GestureDetector._getAllElementsInArgument(targetElement, option.deep).forEach(element => {
-            if(isset(element.dataset["gesdetId"]) && GestureDetector.getgesdetGroup(element.dataset["gesdetId"]).length > 0 && !option.overwrite){
+            if(isset(element.gestureDetectorIdentifier) && GestureDetector.getgesdetGroup(element.gestureDetectorIdentifier).length > 0 && !option.overwrite){
                 //gesdetIdが既に定義済み
                 throw new Error("`data-gesdet-id` is already defined!");
             }
             else{
                 //gesdetId未定義若しくは強制上書きモードの時はgesdetIdを設定
-                element.dataset["gesdetId"] = this.gesdetId;
+                element.gestureDetectorIdentifier = this.gesdetId;
             }
         });
 
@@ -767,7 +824,7 @@ class GestureDetector{
 
     /**
      * @description 関数をグループから削除 (無名関数は削除不能) || remove function from the group (you can't remove nameless function)
-     * @param {...Function} callback 
+     * @param {...function()} callback 
      */
     removeFunction(...callback){
         callback = [...callback];
@@ -798,7 +855,7 @@ window.addEventListener('load', () => {
     });
 
     //end of movement
-    ["mouseup", "touchend"].forEach(value => {
+    ["mouseup", "touchend", "dragend", "selectionend"].forEach(value => {
         document.addEventListener(value, GestureDetector.end, {capture: false});
     });
 });

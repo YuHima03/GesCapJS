@@ -1,28 +1,42 @@
 :root {
-    touch-action: none;
+    box-sizing: border-box;
     line-height: 1.6;
     letter-spacing: .025em;
 }
 
-::selection {
-    /*background: none;*/
-}
-
 html {
+    touch-action: pan-y;
+    overscroll-behavior-y: none;
+    overflow: auto scroll;
+
     font-family: 'Yu Gothic', system-ui,-apple-system, BlinkMacSystemFont, 'Segoe UI',sans-serif;
     line-height: 1.5;
     font-weight: 400;
     font-size: 16px;
 
+    overflow-x: hidden;
+
     cursor: default;
 }
 
 p {
-    font-weight: 400;
+    color: #0f0f0f;
+    font-weight: 500;
 }
+
+a {
+    text-decoration: none;
+    color: rgb(55, 159, 224);
+    font-weight: 500;
+}
+
+    a:hover {
+        text-decoration: underline;
+    }
 
 body {
     margin: 0 auto;
+    width: 100vw;
     background: whitesmoke;
 }
 
@@ -78,7 +92,7 @@ header {
             }
 
 #layer {
-    display: none;
+    visibility: hidden;
     position: fixed;
     z-index: 2;
     top: 0;
@@ -90,18 +104,65 @@ header {
     background: #000000;
 
     opacity: 0;
+
+    transition: 200ms ease-out opacity;
 }
 
-    #layer.tra {
-        transition: 150ms ease-out opacity;
+    #layer.show {
+        opacity: .5;
     }
 
 
 #main {
-    display: block;
+    display: inline-block;
     background: white;
+    width: 100%;
 }
+
+    #main > .content {
+        font-size: 1rem;
+        margin: 1.5em;
+    }
+
+        #main > .content > .section > .content h2 {
+            font-size: 1.5em;
+            margin: .25em 0;
+        }
+
+        #main > .content > .section > .content p {
+            font-size: 1em;
+            margin: .5em .75em;
+        }
+
+            #main > .content > .section > .content p span {
+                margin: 0 .25em;
+            }
+
+                #main > .content > .section > .content p span.small {
+                    font-size: .75em;
+                }
+
+        #main > .content > .section > .content .image {
+            font-size: inherit;
+            margin: 1em;
+            width: calc(100% - 2em);
+        }
+
+            #main > .content > .section > .content .image > img {
+                width: 100%;
+            }
+
+            #main > .content > .section > .content .image.viewerTarget > img:hover {
+                cursor: pointer;
+            }
 
     #main.tra {
         transition: 150ms ease-out margin-top;
     }
+
+
+@media screen and (max-width: 786px) {
+    html {
+        font-size: 12px;
+    }
+}

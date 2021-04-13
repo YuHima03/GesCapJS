@@ -11,7 +11,17 @@ window.addEventListener("load", () => {
     /**@type {GestureDetector} */
     let imgGestureDetector = undefined;
 
-    function setImgWrapPosition(x = 0, y = 0){
+    function setImgWrapPosition(x = 0, y = 0, zoom = 1){
+        let imgWrapClientRect = imgWrap.getBoundingClientRect();
+        let documentClientRect = document.documentElement.getBoundingClientRect();
+
+        if(x === undefined){
+            x = imgWrapClientRect.left + (imgWrapClientRect.width - documentClientRect.width) / 2;
+        }
+        if(y === undefined){
+            y = imgWrapClientRect.top + (imgWrapClientRect.height - documentClientRect.height) / 2;
+        }
+
         let margin = {
             left    :   (window.innerWidth - targetImage[0].clientWidth) / 2 + x,
             top     :   (window.innerHeight - targetImage[0].clientHeight) / 2 + y
@@ -21,7 +31,13 @@ window.addEventListener("load", () => {
         imgWrap.style.left = `${margin.left}px`;
     }
 
+    /**@type {saveElementValue} */
     let savedImgElementValue = undefined;
+
+    let imgWrapDefaultSize = {
+        width   :   0,
+        height  :   0
+    }
 
     /**@type {Object.<string, GestureDetectorFunction>} */
     let img_gestureListener = {
@@ -40,7 +56,12 @@ window.addEventListener("load", () => {
         },
         //ダブルクリック or ダブルタップ
         double  :   (ev, gesEvent) => {
+            if(Math.floor(removeUnit(imgWrap.style.width)) === Math.floor(imgWrapDefaultSize.width)){
+                
+            }
+            else{
 
+            }
         },
         //ピンチ操作
         pinch   :   (ev, gesEvent) => {
@@ -63,8 +84,11 @@ window.addEventListener("load", () => {
                 height = width * ratio;
             }
 
-            targetImage[0].style.width = `${width}px`;
-            targetImage[0].style.height = `${height}px`;
+            imgWrapDefaultSize.width = width;
+            imgWrapDefaultSize.height = height;
+
+            imgWrap.style.width = `${width}px`;
+            imgWrap.style.height = `${height}px`;
         }
 
         setImgWrapPosition();

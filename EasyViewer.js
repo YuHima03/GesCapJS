@@ -21,12 +21,22 @@ window.addEventListener("load", () => {
         imgWrap.style.left = `${margin.left}px`;
     }
 
+    let savedImgElementValue = undefined;
+
     /**@type {Object.<string, GestureDetectorFunction>} */
     let img_gestureListener = {
         //
         move    :   (ev, gesEvent) => {
-            imgWrap.style.left = `${gesEvent.displacement.x}px`;
-            imgWrap.style.top = `${gesEvent.displacement.y}px`;
+            if(gesEvent.startOfMovement){
+                savedImgElementValue = new saveElementValue(imgWrap, "offsetTop", "offsetLeft");
+            }
+
+            imgWrap.style.left = `${savedImgElementValue.data["offsetLeft"] + gesEvent.displacement.x}px`;
+            imgWrap.style.top = `${savedImgElementValue.data["offsetTop"] + gesEvent.displacement.y}px`;
+
+            if(gesEvent.endOfMovement){
+                savedImgElementValue = undefined;
+            }
         },
         //ダブルクリック or ダブルタップ
         double  :   (ev, gesEvent) => {

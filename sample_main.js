@@ -9,10 +9,10 @@ let mainBlock = document.getElementById("main");
 let document_GestureDetector = new GestureDetector(document);
 
 /**サイドメニュー */
-/*let sideMenu_GestureDetector = new GestureDetector(document.getElementById("sideMenu"), {
+let sideMenu_GestureDetector = new GestureDetector(document.getElementById("sideMenu"), {
     overwrite: true,
     parentGroup: document_GestureDetector
-});*/
+});
 
 let main_GestureDetector = new GestureDetector(document.getElementById("main"), {
     overwrite   :   true,

@@ -54,7 +54,7 @@ class GestureEvent{
          */
         this.inputType = data.inputType;
         /**
-         * @description `stopMovement`関数の実行の可否 || weather `stopMovement` function can be called
+         * @description `stopMovement`関数の実行の可否 || weather `stopMovement` function will be called
          */
         this.enableStopMovement = data.enableStopMovement;
         /**
@@ -377,7 +377,8 @@ class GestureDetector{
      * @param {MovementEvent} ev 
      */
     static start(ev){
-        if(!isset(GestureDetector._data)){
+        //TouchEventと一緒に発火したMouseEventは除外
+        if(!isset(GestureDetector._data) && !(ev instanceof MouseEvent && ev.sourceCapabilities.firesTouchEvents)){
             GestureDetector._data = new GestureDetectorData(ev);
             let data = GestureDetector._data;
 
@@ -600,11 +601,6 @@ class GestureDetector{
                     fifth       :   ((buttons & 16) === 16)
                 }
             }
-        }
-
-        if(endOfMovement && data.inputType === "touch"){
-            //touchendの後にmouseイベントが発火するのを防止
-            ev.preventDefault();
         }
 
         //endOfMovement
